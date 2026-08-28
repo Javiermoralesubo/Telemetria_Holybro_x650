@@ -18,7 +18,4 @@ Estación Terrena de Control en Tiempo Real (Ground Control Station - GCS) desar
 
 ## 📦 Instalación y Uso
 
-1. Clona este repositorio:
-   ```bash
-   git clone [https://github.com/tu-usuario/tu-repositorio.git](https://github.com/tu-usuario/tu-repositorio.git)
-   cd tu-repositorio
+1. Descarga el archivo rar y luego ejecutar por Windows Powershell los comandos en la carpeta
