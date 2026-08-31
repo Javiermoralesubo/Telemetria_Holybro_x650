@@ -44,7 +44,11 @@ mi_proyecto_gcs/
 ## 📋 3. Requisitos Previos e Instalación
 
 1. **Python** (versión 3.8 o superior instalado en tu sistema).
-2. Las librerías necesarias del proyecto. Abre tu terminal (CMD o PowerShell) en la carpeta del proyecto y ejecuta:
+2. Abre la terminal Powershell y ejecuta el siguiente comando:
+   ````bash
+   pip install pyserial
+   ````
+4. Las librerías necesarias del proyecto. Abre tu terminal (CMD o PowerShell) en la carpeta del proyecto y ejecuta:
 
 ```bash
 pip install -r requirements.txt
