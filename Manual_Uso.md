@@ -45,14 +45,16 @@ mi_proyecto_gcs/
 
 1. **Python** (versión 3.8 o superior instalado en tu sistema).
 2. Abre la terminal Powershell y ejecuta el siguiente comando:
-   ````bash
-   pip install pyserial
-   ````
-4. Las librerías necesarias del proyecto. Abre tu terminal (CMD o PowerShell) en la carpeta del proyecto y ejecuta:
+
+````bash
+pip install pyserial
+````
+3. Las librerías necesarias del proyecto. Abre tu terminal (CMD o PowerShell) en la carpeta del proyecto y ejecuta:
 
 ```bash
 pip install -r requirements.txt
 ```
+
 *(Contenido del archivo `requirements.txt`: Flask==3.0.2, pymavlink==2.4.38, pyserial==3.5)*
 
 ---
