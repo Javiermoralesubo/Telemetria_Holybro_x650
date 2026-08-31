@@ -1,0 +1,25 @@
+# Python Bytecode y Caché
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Entornos Virtuales
+venv/
+env/
+.venv/
+ENV/
+
+# Archivos de Sistema Operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDEs y Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs temporales (opcional: preservar telemetria_escritorio.csv como muestra)
+*.log
