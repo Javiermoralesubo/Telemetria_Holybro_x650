@@ -1,0 +1,2224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GCS Pixhawk 6X - Estación Terrena de Control Aeroespacial</title>
+
+<!-- Librería de Gráficos Chart.js (Online + Fallback local) -->
+<script src="/static/chart.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/chart.js';"></script>
+<!-- Librería Leaflet para Mapa Geoespacial (Online + Fallback local) -->
+<link rel="stylesheet" href="/static/leaflet.css" onerror="this.onerror=null;this.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';" />
+<script src="/static/leaflet.js" onerror="this.onerror=null;this.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';"></script>
+
+<style>
+/* =========================================================
+   SISTEMA DE DISEÑO AEROESPACIAL CYBER-DARK GLASSMORPHISM
+========================================================= */
+:root {
+    --bg-main: #060a14;
+    --bg-panel: rgba(14, 22, 39, 0.85);
+    --bg-card: rgba(19, 31, 56, 0.75);
+    --border-color: #1e2e4a;
+    --border-highlight: #2a4365;
+    
+    --cyan: #00f2fe;
+    --cyan-glow: rgba(0, 242, 254, 0.35);
+    --blue: #38bdf8;
+    --blue-dark: #0284c7;
+    --green: #10b981;
+    --green-glow: rgba(16, 185, 129, 0.3);
+    --amber: #f59e0b;
+    --amber-glow: rgba(245, 158, 11, 0.3);
+    --red: #f43f5e;
+    --red-glow: rgba(244, 63, 94, 0.35);
+    --purple: #a855f7;
+    
+    --text-main: #f8fafc;
+    --text-dim: #cbd5e1;
+    --text-muted: #94a3b8;
+    
+    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    --font-mono: 'Fira Code', 'Consolas', 'Courier New', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-ui); }
+body { 
+    background: radial-gradient(circle at 50% 0%, #0c182e 0%, var(--bg-main) 75%);
+    color: var(--text-main); 
+    padding: 12px 16px; 
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* MARCA DE AGUA UBO EN EL FONDO (MÁS VISIBLE Y NÍTIDO) */
+.watermark {
+    position: fixed; 
+    top: 50%; 
+    left: 50%; 
+    transform: translate(-50%, -50%) rotate(-12deg); 
+    width: 65vw; 
+    max-width: 1100px; 
+    opacity: 0.18; 
+    z-index: 0; 
+    pointer-events: none; 
+    user-select: none;
+    filter: drop-shadow(0 0 30px rgba(0, 242, 254, 0.2));
+}
+
+/* =========================================================
+   HEADER PRINCIPAL Y BARRA DE CONEXIÓN DINÁMICA
+========================================================= */
+header {
+    position: relative;
+    z-index: 10;
+    margin-bottom: 12px;
+    background: var(--bg-panel);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 12px 18px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+.brand-box {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.brand-logo {
+    height: 78px;
+    max-height: 85px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 14px rgba(0, 242, 254, 0.45));
+    transition: all 0.3s ease;
+}
+.brand-title h1 {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    background: linear-gradient(90deg, #38bdf8, #00f2fe, #f8fafc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.brand-title .subtitle {
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+/* BARRA DE CONEXIÓN DINÁMICA */
+.connection-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    background: rgba(6, 11, 22, 0.8);
+    padding: 6px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+}
+.conn-select {
+    background: #0f1a30;
+    border: 1px solid var(--border-highlight);
+    color: var(--text-main);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    outline: none;
+    cursor: pointer;
+}
+.btn-connect {
+    background: linear-gradient(135deg, #0284c7, #0369a1);
+    color: #ffffff;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.btn-connect:hover {
+    box-shadow: 0 0 12px var(--cyan-glow);
+    background: #0284c7;
+}
+.btn-connect.connected {
+    background: linear-gradient(135deg, #15803d, #166534);
+}
+.btn-connect.connected:hover {
+    background: #dc2626;
+}
+
+.sim-switch {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+}
+
+/* ESTADO GLOBAL & BADGES */
+.header-badges {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+}
+.badge {
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid var(--border-color);
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.badge.online { color: var(--green); border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.1); }
+.badge.offline { color: var(--red); border-color: rgba(244, 63, 94, 0.4); background: rgba(244, 63, 94, 0.1); }
+.badge.armed { color: var(--red); border-color: var(--red); background: rgba(244, 63, 94, 0.2); animation: pulseArmed 1.5s infinite; }
+.badge.disarmed { color: var(--blue); border-color: var(--blue-dark); background: rgba(2, 132, 199, 0.15); }
+.badge.mode { color: var(--amber); border-color: var(--amber); background: rgba(245, 158, 11, 0.15); }
+.badge.rate { color: var(--cyan); font-family: var(--font-mono); }
+
+@keyframes pulseArmed {
+    0%, 100% { box-shadow: 0 0 4px var(--red-glow); }
+    50% { box-shadow: 0 0 15px var(--red-glow); }
+}
+
+/* =========================================================
+   BARRA DE NAVEGACIÓN MODULAR DE PESTAÑAS (TABS)
+========================================================= */
+.nav-tabs {
+    display: flex;
+    justify-content: flex-start;
+    gap: 6px;
+    margin-bottom: 15px;
+    background: var(--bg-panel);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 6px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+.tab-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+.tab-btn:hover {
+    background: rgba(30, 46, 74, 0.5);
+    color: var(--text-main);
+    border-color: var(--border-highlight);
+}
+.tab-btn.active {
+    background: linear-gradient(135deg, #0284c7, #0369a1);
+    color: #ffffff;
+    border-color: var(--cyan);
+    box-shadow: 0 4px 14px rgba(0, 242, 254, 0.25);
+}
+
+.tab-content {
+    display: none;
+    animation: tabFadeIn 0.25s ease-out;
+}
+.tab-content.active {
+    display: block;
+}
+@keyframes tabFadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================================
+   COMPONENTES Y PANELES
+========================================================= */
+.panel {
+    background: var(--bg-panel);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 8px;
+}
+.panel-title {
+    color: var(--cyan);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* CINTA DE TELEMETRÍA RÁPIDA (CARDS) */
+.telemetria-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 10px;
+    margin-bottom: 15px;
+}
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+.card.clickable { cursor: pointer; }
+.card.clickable:hover { transform: translateY(-2px); border-color: var(--cyan); }
+.card.active { border-color: var(--cyan); box-shadow: 0 0 14px var(--cyan-glow); }
+.card .icon { font-size: 18px; margin-bottom: 2px; }
+.card .titulo { font-size: 10px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.card .valor { font-size: 22px; font-weight: 800; color: #fb7185; margin: 3px 0; font-family: var(--font-mono); }
+.card .unidad { font-size: 11px; color: var(--text-dim); }
+
+/* =========================================================
+   PESTAÑA 1: PFD (PRIMARY FLIGHT DISPLAY) & OPERACIONES
+========================================================= */
+.layout-pfd {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 15px;
+}
+@media(max-width: 1100px) {
+    .layout-pfd { grid-template-columns: 1fr; }
+}
+
+.pfd-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4/3;
+    max-height: 480px;
+    background: #020617;
+    border-radius: 12px;
+    border: 1px solid var(--border-highlight);
+    overflow: hidden;
+    box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8), 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+#pfdCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+#mapa-container {
+    width: 100%;
+    height: 380px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.quick-control-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+}
+.btn-mode {
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-mode:hover {
+    background: var(--blue-dark);
+    border-color: var(--cyan);
+}
+.btn-emergency {
+    background: #dc2626;
+    color: #ffffff;
+    border: 1px solid #ef4444;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.btn-emergency:hover {
+    background: #b91c1c;
+    box-shadow: 0 0 15px var(--red-glow);
+}
+
+/* =========================================================
+   PESTAÑA 2: DIAGNÓSTICO DE SENSORES, IMU & VIBRACIONES
+========================================================= */
+.sensors-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 15px;
+}
+.vibe-meter-box {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.vibe-axis-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.vibe-label {
+    width: 65px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+.vibe-bar-track {
+    flex-grow: 1;
+    height: 14px;
+    background: #0f172a;
+    border-radius: 7px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    position: relative;
+}
+.vibe-bar-fill {
+    height: 100%;
+    width: 0%;
+    transition: width 0.15s ease, background-color 0.2s;
+    background: var(--green);
+}
+.vibe-val {
+    width: 65px;
+    text-align: right;
+    font-size: 13px;
+    font-weight: 800;
+    font-family: var(--font-mono);
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.data-table tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.data-table td {
+    padding: 7px 6px;
+}
+.data-table td.label {
+    color: var(--text-muted);
+    font-weight: 500;
+}
+.data-table td.val {
+    text-align: right;
+    font-weight: 700;
+    color: #e2e8f0;
+    font-family: var(--font-mono);
+}
+.data-table td.unit {
+    width: 45px;
+    text-align: left;
+    padding-left: 6px;
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+/* =========================================================
+   PESTAÑA 3: BANCO DE ACTUADORES & MOTORES
+========================================================= */
+.actuator-card {
+    max-width: 960px;
+    margin: 0 auto;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 18px;
+}
+.safety-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    padding: 12px 18px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+}
+.motors-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 12px;
+    background: rgba(6, 11, 22, 0.6);
+    border-radius: 12px;
+    padding: 18px 12px;
+    margin-bottom: 16px;
+}
+.motor-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 220px;
+    justify-content: space-between;
+}
+.motor-column input[type=range] {
+    writing-mode: vertical-lr;
+    direction: rtl;
+    width: 24px;
+    height: 140px;
+    accent-color: var(--cyan);
+    cursor: pointer;
+}
+.motor-column input[type=range]:disabled {
+    cursor: not-allowed;
+    accent-color: #64748b;
+}
+.motor-label { font-size: 12px; font-weight: 700; color: var(--text-muted); }
+.motor-val { font-size: 15px; font-weight: 800; color: var(--cyan); font-family: var(--font-mono); }
+
+/* =========================================================
+   PESTAÑA 4: SINTONIZADOR DE PARÁMETROS PID
+========================================================= */
+.pid-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+}
+.pid-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px;
+}
+.pid-card h3 {
+    color: var(--cyan);
+    font-size: 14px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.pid-input-group {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+.pid-input-group label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+.pid-input-group input {
+    background: #090e1a;
+    border: 1px solid var(--border-highlight);
+    color: #ffffff;
+    width: 90px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    text-align: right;
+    font-size: 12px;
+}
+.btn-pid-save {
+    background: var(--blue-dark);
+    color: #ffffff;
+    border: none;
+    width: 100%;
+    padding: 7px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.2s;
+}
+.btn-pid-save:hover { background: #0284c7; }
+
+/* =========================================================
+   PESTAÑA 5, 6, 7: GRÁFICOS, CONSOLA Y SIMULADOR
+========================================================= */
+.chart-container-box {
+    position: relative;
+    width: 100%;
+    height: 440px;
+}
+#consola-completa {
+    background: rgba(3, 7, 18, 0.95);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    height: 480px;
+    overflow-y: auto;
+    padding: 14px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.6;
+}
+.log-row { margin-bottom: 4px; }
+.log-time { color: var(--text-muted); margin-right: 8px; }
+.log-info { color: var(--cyan); }
+.log-warn { color: var(--amber); font-weight: 700; }
+.log-danger { color: var(--red); font-weight: 700; }
+.log-success { color: var(--green); }
+
+/* BARRA DE CONTROL DEL SIMULADOR */
+.sim-controls-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(6, 11, 22, 0.85);
+    padding: 12px 18px;
+    border-radius: 10px;
+    border: 1px solid var(--border-highlight);
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+/* FOOTER */
+footer {
+    margin-top: 20px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px 18px;
+    display: flex;
+    justify-content: space-between;
+    color: var(--text-muted);
+    font-size: 12px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+</style>
+</head>
+<body>
+
+<!-- MARCA DE AGUA UBO GIGANTE -->
+<img src="/static/logo_ubo.png" class="watermark" alt="UBO Watermark">
+
+<!-- =========================================================
+     HEADER Y ESTADO GLOBAL
+========================================================= -->
+<header>
+    <div class="header-top">
+        <div class="brand-box">
+            <img src="/static/logo_ubo.png" class="brand-logo" alt="Logo UBO">
+            <div class="brand-title">
+                <h1>ESTACIÓN TERRENA PIXHAWK 6X</h1>
+                <div class="subtitle">SISTEMA INTEGRAL GCS DE TELEMETRÍA, CONTROL & DIAGNÓSTICO AEROESPACIAL</div>
+            </div>
+        </div>
+
+        <!-- BARRA DE CONEXIÓN DINÁMICA -->
+        <div class="connection-bar">
+            <div style="display:flex; align-items:center; gap:6px;">
+                <select id="puertoSelect" class="conn-select" title="Seleccionar Puerto Serial o SITL" onchange="onPuertoSelectChange()">
+                    <option value="COM7">COM7 (Pixhawk USB)</option>
+                    <option value="CUSTOM">✏️ Otro / Escribir puerto...</option>
+                </select>
+                <input id="puertoCustomInput" type="text" class="conn-select" placeholder="Ej: COM8, /dev/ttyUSB0" style="display:none; width:160px;" title="Escribir nombre del puerto COM (Ejemplo: COM8, COM5, /dev/ttyUSB0)">
+            </div>
+            <select id="baudSelect" class="conn-select" title="Baud Rate">
+                <option value="57600">57600 baud</option>
+                <option value="115200">115200 baud</option>
+                <option value="921600">921600 baud</option>
+            </select>
+            <button id="btnConectar" class="btn-connect" onclick="toggleConexion()">🔌 Conectar</button>
+            <button class="btn-connect" onclick="refrescarPuertos()" style="background:#1e293b;" title="Escanear Puertos">🔄 Escanear</button>
+            <button id="btnWebSerial" class="btn-connect" onclick="solicitarPuertoWebSerial()" style="background:#0f172a; border:1px solid var(--cyan);" title="Seleccionar Dispositivo Serial con Web Serial API (Navegador)">🔌 Web Serial</button>
+            
+            <div class="sim-switch" onclick="toggleSimulacion()">
+                <span id="simLed">⚪</span> <span id="simTexto">Simulador CSV</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="header-badges">
+        <div class="badge offline" id="badge-mavlink">● MAVLINK DESCONECTADO</div>
+        <div class="badge rate" id="badge-hz">0.0 Hz</div>
+        <div class="badge mode" id="badge-modo">MODO: DESCONOCIDO</div>
+        <div class="badge disarmed" id="badge-armado" onclick="modalArmar()">● DESARMADO</div>
+        <div class="badge" id="badge-gps">GPS: SIN FIX (0 Sats)</div>
+        <div class="badge" id="badge-bateria">BAT: 0.0V (0%) | 0.0V/c</div>
+        <div class="badge" id="badge-vibe" style="color:var(--green);">VIBE: ÓPTIMO</div>
+    </div>
+</header>
+
+<!-- =========================================================
+     BARRA DE PESTAÑAS (7 MÓDULOS)
+========================================================= -->
+<nav class="nav-tabs">
+    <button class="tab-btn active" onclick="cambiarPestana('tab-pfd', this)">🛩️ PFD & Dashboard</button>
+    <button class="tab-btn" onclick="cambiarPestana('tab-sensores', this)">📊 Diagnóstico & Sensores</button>
+    <button class="tab-btn" onclick="cambiarPestana('tab-actuadores', this)">⚙️ Banco de Actuadores</button>
+    <button class="tab-btn" onclick="cambiarPestana('tab-pid', this)">🎛️ Sintonizador PID</button>
+    <button class="tab-btn" onclick="cambiarPestana('tab-graficos', this)">📈 Gráficos en Vivo</button>
+    <button class="tab-btn" onclick="cambiarPestana('tab-mision', this)">🗺️ Planificador de Misión (Setpoints)</button>
+    <button class="tab-btn" onclick="cambiarPestana('tab-consola', this)">💻 Consola MAVLink</button>
+    <button class="tab-btn" onclick="cambiarPestana('tab-simulador', this)">📁 Reproductor de Logs</button>
+</nav>
+
+<!-- =========================================================
+     PESTAÑA 1: PFD (PRIMARY FLIGHT DISPLAY) & DASHBOARD
+========================================================= -->
+<div id="tab-pfd" class="tab-content active">
+    <!-- CINTA DE TELEMETRÍA RÁPIDA -->
+    <section class="telemetria-grid">
+        <div class="card clickable active" id="card-pitch" onclick="seleccionarMetrica('pitch', 'Pitch (Cabeceo)', '#a3e635', 'card-pitch')">
+            <div class="icon">↕️</div>
+            <div class="titulo">PITCH (CABECEO)</div>
+            <div class="valor" id="d-pitch">0.000</div>
+            <div class="unidad"><span id="d-pitch-deg">0.0</span>°</div>
+        </div>
+        <div class="card clickable" id="card-roll" onclick="seleccionarMetrica('roll', 'Roll (Alabeo)', '#facc15', 'card-roll')">
+            <div class="icon">↔️</div>
+            <div class="titulo">ROLL (ALABEO)</div>
+            <div class="valor" id="d-roll">0.000</div>
+            <div class="unidad"><span id="d-roll-deg">0.0</span>°</div>
+        </div>
+        <div class="card clickable" id="card-yaw" onclick="seleccionarMetrica('yaw', 'Yaw (Guiñada)', '#fb7185', 'card-yaw')">
+            <div class="icon">🔄</div>
+            <div class="titulo">YAW (RUMBO)</div>
+            <div class="valor" id="d-yaw">0.000</div>
+            <div class="unidad"><span id="d-yaw-deg">0.0</span>°</div>
+        </div>
+        <div class="card">
+            <div class="icon">⛰️</div>
+            <div class="titulo">ALTITUD RELATIVA</div>
+            <div class="valor" id="d-alt-rel" style="color:var(--cyan);">0.0</div>
+            <div class="unidad">metros AGL</div>
+        </div>
+        <div class="card">
+            <div class="icon">🏎️</div>
+            <div class="titulo">VELOCIDAD TIERRA</div>
+            <div class="valor" id="d-speed" style="color:var(--purple);">0.0</div>
+            <div class="unidad">m/s (<span id="d-speed-kmh">0.0</span> km/h)</div>
+        </div>
+        <div class="card">
+            <div class="icon">🔋</div>
+            <div class="titulo">BATERÍA</div>
+            <div class="valor" id="d-bat-pct" style="color:var(--green);">0%</div>
+            <div class="unidad" id="d-bat-volts">0.0 V | 0.0 A</div>
+        </div>
+    </section>
+
+    <div class="layout-pfd">
+        <!-- COLUMNA IZQUIERDA: PFD HORIZONTE ARTIFICIAL EN CANVAS -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">🛩️ PRIMARY FLIGHT DISPLAY (PFD) 60 FPS</div>
+                <div style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">MODO HUD AERO</div>
+            </div>
+            <div class="pfd-container">
+                <canvas id="pfdCanvas" width="600" height="420"></canvas>
+            </div>
+            <!-- CONTROLES RÁPIDOS DE VUELO -->
+            <div class="quick-control-bar">
+                <button class="btn-mode" onclick="enviarCambioModo('POSCTL')">POSCTL</button>
+                <button class="btn-mode" onclick="enviarCambioModo('ALTCTL')">ALTCTL</button>
+                <button class="btn-mode" onclick="enviarCambioModo('STABILIZED')">STABILIZE</button>
+                <button class="btn-mode" onclick="enviarCambioModo('AUTO_RTL')">🏠 RTL</button>
+                <button class="btn-mode" onclick="enviarCambioModo('AUTO_LAND')">🛬 LAND</button>
+                <button class="btn-emergency" onclick="paradaEmergencia()">🛑 CORTE MOTOR</button>
+            </div>
+        </div>
+
+        <!-- COLUMNA DERECHA: MAPA GEOESPACIAL TÁCTICO & RADAR -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">🌍 MAPA TÁCTICO & TRAYECTORIA GPS</div>
+                <div style="font-size:11px; color:var(--cyan);"><span id="gps-coords-badge">-33.4672, -70.6576</span></div>
+            </div>
+            <div id="mapa-container"></div>
+            <div style="margin-top:10px; display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted);">
+                <span>Estela de Vuelo: <strong style="color:var(--cyan);">Activa</strong></span>
+                <span>Zoom Mosaicos: <strong id="map-zoom-badge">17</strong></span>
+                <span>Satélites: <strong id="map-sats-badge" style="color:var(--green);">0</strong></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================
+     PESTAÑA 2: DIAGNÓSTICO DE SENSORES, IMU & VIBRACIONES
+========================================================= -->
+<div id="tab-sensores" class="tab-content">
+    <div class="sensors-grid">
+        <!-- VIBRACIONES Y SALUD DINÁMICA -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">📳 Monitor de Vibración 3D (Pixhawk 6X)</div>
+                <div id="vibe-status-tag" style="font-size:11px; font-weight:700; color:var(--green);">SALUDABLE</div>
+            </div>
+            <div class="vibe-meter-box">
+                <div class="vibe-axis-row">
+                    <div class="vibe-label">Eje X:</div>
+                    <div class="vibe-bar-track"><div id="vibe-bar-x" class="vibe-bar-fill"></div></div>
+                    <div class="vibe-val" id="vibe-val-x">0.0 m/s²</div>
+                </div>
+                <div class="vibe-axis-row">
+                    <div class="vibe-label">Eje Y:</div>
+                    <div class="vibe-bar-track"><div id="vibe-bar-y" class="vibe-bar-fill"></div></div>
+                    <div class="vibe-val" id="vibe-val-y">0.0 m/s²</div>
+                </div>
+                <div class="vibe-axis-row">
+                    <div class="vibe-label">Eje Z:</div>
+                    <div class="vibe-bar-track"><div id="vibe-bar-z" class="vibe-bar-fill"></div></div>
+                    <div class="vibe-val" id="vibe-val-z">0.0 m/s²</div>
+                </div>
+            </div>
+            <table class="data-table" style="margin-top:12px;">
+                <tr><td class="label">Clipping Acelerómetros (0/1/2)</td><td class="val" id="vibe-clip">0 / 0 / 0</td><td class="unit">clips</td></tr>
+                <tr><td class="label">Diagnóstico de Resonancia</td><td class="val" id="vibe-diag" style="color:var(--cyan);">Balanceo Correcto</td><td class="unit"></td></tr>
+            </table>
+        </div>
+
+        <!-- SALUD DEL ESTIMADOR EKF -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">🧠 Salud de Estimación EKF</div>
+                <div id="ekf-status-tag" style="font-size:11px; font-weight:700; color:var(--green);">ÓPTIMO</div>
+            </div>
+            <table class="data-table">
+                <tr><td class="label">Varianza de Velocidad</td><td class="val" id="ekf-vel-var">0.00</td><td class="unit"></td></tr>
+                <tr><td class="label">Varianza Pos. Horizontal</td><td class="val" id="ekf-horiz-var">0.00</td><td class="unit"></td></tr>
+                <tr><td class="label">Varianza Pos. Vertical</td><td class="val" id="ekf-vert-var">0.00</td><td class="unit"></td></tr>
+                <tr><td class="label">Varianza Brújula / Mag</td><td class="val" id="ekf-compass-var">0.00</td><td class="unit"></td></tr>
+                <tr><td class="label">Varianza Altitud Terreno</td><td class="val" id="ekf-terrain-var">0.00</td><td class="unit"></td></tr>
+            </table>
+        </div>
+
+        <!-- IMU DE ALTA RESOLUCIÓN -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">🧭 Sensores Inerciales IMU</div>
+            </div>
+            <table class="data-table">
+                <tr><td class="label">Acc X / Y / Z</td><td class="val" id="s-acc">0.0 / 0.0 / 0.0</td><td class="unit">m/s²</td></tr>
+                <tr><td class="label">Giro X / Y / Z</td><td class="val" id="s-gyro">0.00 / 0.00 / 0.00</td><td class="unit">rad/s</td></tr>
+                <tr><td class="label">Mag X / Y / Z</td><td class="val" id="s-mag">0.00 / 0.00 / 0.00</td><td class="unit">Gauss</td></tr>
+                <tr><td class="label">Presión Barométrica</td><td class="val" id="s-press">1013.25</td><td class="unit">hPa</td></tr>
+                <tr><td class="label">Temperatura Placa</td><td class="val" id="s-temp">25.0</td><td class="unit">°C</td></tr>
+            </table>
+        </div>
+
+        <!-- ENERGÍA Y SISTEMA -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">⚡ Sistema de Energía & CPU</div>
+            </div>
+            <table class="data-table">
+                <tr><td class="label">Voltaje Total</td><td class="val" id="s-bat-v">0.0</td><td class="unit">V</td></tr>
+                <tr><td class="label">Voltaje Promedio por Celda</td><td class="val" id="s-cell-v">0.0</td><td class="unit">V/c</td></tr>
+                <tr><td class="label">Corriente Instantánea</td><td class="val" id="s-bat-a">0.0</td><td class="unit">A</td></tr>
+                <tr><td class="label">Consumo Acumulado</td><td class="val" id="s-mah">0.0</td><td class="unit">mAh</td></tr>
+                <tr><td class="label">Carga CPU Pixhawk</td><td class="val" id="s-cpu">0.0</td><td class="unit">%</td></tr>
+                <tr><td class="label">Pérdida de Paquetes COM</td><td class="val" id="s-drop">0.0</td><td class="unit">%</td></tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================
+     PESTAÑA 3: BANCO DE ACTUADORES & MOTORES
+========================================================= -->
+<div id="tab-actuadores" class="tab-content">
+    <div class="actuator-card">
+        <div class="safety-box">
+            <div>
+                <strong style="color:var(--red); font-size:14px;">⚠️ PROTOCOLO DE SEGURIDAD PARA PRUEBA DE BANCO</strong>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Asegúrese de haber retirado todas las hélices antes de activar los deslizadores.</div>
+            </div>
+            <label style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="safetyToggle" onchange="toggleSafety(this)" style="width: 20px; height: 20px; accent-color: var(--red);">
+                <strong style="color:#ffffff; font-size:13px;">Habilitar Sliders</strong>
+            </label>
+        </div>
+
+        <!-- SLIDERS INDIVIDUALES MOTORES 1 A 8 -->
+        <div class="motors-grid">
+            <div class="motor-column">
+                <span class="motor-val" id="val-m1">0%</span>
+                <input type="range" id="slider-1" min="0" max="100" value="0" disabled oninput="actualizarSlider(1, this.value)">
+                <span class="motor-label">Motor 1</span>
+            </div>
+            <div class="motor-column">
+                <span class="motor-val" id="val-m2">0%</span>
+                <input type="range" id="slider-2" min="0" max="100" value="0" disabled oninput="actualizarSlider(2, this.value)">
+                <span class="motor-label">Motor 2</span>
+            </div>
+            <div class="motor-column">
+                <span class="motor-val" id="val-m3">0%</span>
+                <input type="range" id="slider-3" min="0" max="100" value="0" disabled oninput="actualizarSlider(3, this.value)">
+                <span class="motor-label">Motor 3</span>
+            </div>
+            <div class="motor-column">
+                <span class="motor-val" id="val-m4">0%</span>
+                <input type="range" id="slider-4" min="0" max="100" value="0" disabled oninput="actualizarSlider(4, this.value)">
+                <span class="motor-label">Motor 4</span>
+            </div>
+            <div class="motor-column">
+                <span class="motor-val" id="val-m5">0%</span>
+                <input type="range" id="slider-5" min="0" max="100" value="0" disabled oninput="actualizarSlider(5, this.value)">
+                <span class="motor-label">Motor 5</span>
+            </div>
+            <div class="motor-column">
+                <span class="motor-val" id="val-m6">0%</span>
+                <input type="range" id="slider-6" min="0" max="100" value="0" disabled oninput="actualizarSlider(6, this.value)">
+                <span class="motor-label">Motor 6</span>
+            </div>
+            <div class="motor-column">
+                <span class="motor-val" id="val-m7">0%</span>
+                <input type="range" id="slider-7" min="0" max="100" value="0" disabled oninput="actualizarSlider(7, this.value)">
+                <span class="motor-label">Motor 7</span>
+            </div>
+            <div class="motor-column">
+                <span class="motor-val" id="val-m8">0%</span>
+                <input type="range" id="slider-8" min="0" max="100" value="0" disabled oninput="actualizarSlider(8, this.value)">
+                <span class="motor-label">Motor 8</span>
+            </div>
+        </div>
+
+        <!-- CONTROL MAESTRO Y PARADA -->
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:20px; flex-wrap:wrap; border-top:1px solid var(--border-color); padding-top:14px;">
+            <div style="display:flex; align-items:center; gap:10px; flex-grow:1;">
+                <span style="font-weight:700; font-size:13px;">Acelerador Maestro:</span>
+                <input type="range" id="slider-master" min="0" max="100" value="0" disabled oninput="actualizarSliderMaster(this.value)" style="flex-grow:1; accent-color:var(--cyan);">
+                <span id="val-master" style="font-weight:800; color:var(--cyan); font-family:var(--font-mono); min-width:40px;">0%</span>
+            </div>
+            <button class="btn-emergency" onclick="paradaEmergencia()">🛑 Detener Todo</button>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================
+     PESTAÑA 4: SINTONIZADOR DE PARÁMETROS PID
+========================================================= -->
+<div id="tab-pid" class="tab-content">
+    <div class="pid-grid">
+        <!-- ROLL PID -->
+        <div class="pid-card">
+            <h3>🔄 Roll Rate PID (Alabeo)</h3>
+            <div class="pid-input-group"><label>Proporcional (P):</label><input type="number" id="pid_roll_p" step="0.005" value="0.150"></div>
+            <div class="pid-input-group"><label>Integral (I):</label><input type="number" id="pid_roll_i" step="0.005" value="0.200"></div>
+            <div class="pid-input-group"><label>Derivativo (D):</label><input type="number" id="pid_roll_d" step="0.001" value="0.003"></div>
+            <button class="btn-pid-save" onclick="guardarGrupoPID('MC_ROLLRATE', 'pid_roll')">💾 Guardar Roll PID</button>
+        </div>
+
+        <!-- PITCH PID -->
+        <div class="pid-card">
+            <h3>↕️ Pitch Rate PID (Cabeceo)</h3>
+            <div class="pid-input-group"><label>Proporcional (P):</label><input type="number" id="pid_pitch_p" step="0.005" value="0.150"></div>
+            <div class="pid-input-group"><label>Integral (I):</label><input type="number" id="pid_pitch_i" step="0.005" value="0.200"></div>
+            <div class="pid-input-group"><label>Derivativo (D):</label><input type="number" id="pid_pitch_d" step="0.001" value="0.003"></div>
+            <button class="btn-pid-save" onclick="guardarGrupoPID('MC_PITCHRATE', 'pid_pitch')">💾 Guardar Pitch PID</button>
+        </div>
+
+        <!-- YAW PID -->
+        <div class="pid-card">
+            <h3>🔄 Yaw Rate PID (Guiñada)</h3>
+            <div class="pid-input-group"><label>Proporcional (P):</label><input type="number" id="pid_yaw_p" step="0.005" value="0.200"></div>
+            <div class="pid-input-group"><label>Integral (I):</label><input type="number" id="pid_yaw_i" step="0.005" value="0.100"></div>
+            <div class="pid-input-group"><label>Derivativo (D):</label><input type="number" id="pid_yaw_d" step="0.001" value="0.000"></div>
+            <button class="btn-pid-save" onclick="guardarGrupoPID('MC_YAWRATE', 'pid_yaw')">💾 Guardar Yaw PID</button>
+        </div>
+
+        <!-- LÍMITES DE VELOCIDAD -->
+        <div class="pid-card">
+            <h3>🏎️ Límites de Navegación</h3>
+            <div class="pid-input-group"><label>Vel. Máx Horiz (m/s):</label><input type="number" id="pid_vel_xy" step="0.5" value="12.0"></div>
+            <div class="pid-input-group"><label>Vel. Ascenso (m/s):</label><input type="number" id="pid_vel_z_up" step="0.5" value="3.0"></div>
+            <div class="pid-input-group"><label>Vel. Descenso (m/s):</label><input type="number" id="pid_vel_z_dn" step="0.5" value="1.5"></div>
+            <button class="btn-pid-save" onclick="guardarLimitesVel()">💾 Guardar Límites</button>
+        </div>
+    </div>
+
+    <!-- BUSCADOR UNIVERSAL DE PARÁMETROS -->
+    <div class="panel">
+        <div class="panel-header">
+            <div class="panel-title">🔍 Inspector Universal de Parámetros MAVLink</div>
+            <div style="display:flex; gap:8px;">
+                <input type="text" id="busquedaParamInput" placeholder="Ej: MPC_XY_VEL_MAX..." style="background:#090e1a; border:1px solid var(--border-highlight); color:#fff; padding:6px 12px; border-radius:6px; font-size:12px;">
+                <button class="btn-connect" onclick="consultarParametro()">Buscar / Leer</button>
+            </div>
+        </div>
+        <div id="resultadoParametro" style="font-family:var(--font-mono); font-size:13px; color:var(--cyan); padding:8px 0;">
+            Ingrese un nombre de parámetro para leer su valor actual del Pixhawk.
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================
+     PESTAÑA 5: GRÁFICOS Y ANÁLISIS EN VIVO
+========================================================= -->
+<div id="tab-graficos" class="tab-content">
+    <div class="panel">
+        <div class="panel-header">
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                <label for="tipoGraficoSelect" style="font-size:13px; font-weight:700; color:var(--text-muted);">Canales a Graficar:</label>
+                <select id="tipoGraficoSelect" class="conn-select" onchange="cambiarGrupoGrafico(this.value)">
+                    <option value="actitud">Actitud Dinámica (Pitch, Roll, Yaw)</option>
+                    <option value="alt_vel">Altitud Relativa & Velocidad Tierra</option>
+                    <option value="vibracion">Vibraciones 3D (Vibe X, Y, Z)</option>
+                    <option value="bateria">Energía (Voltaje & Corriente)</option>
+                    <option value="imu">Aceleraciones IMU (Acc X, Y, Z)</option>
+                </select>
+                <select id="ventanaTiempoSelect" class="conn-select" onchange="cambiarVentanaTiempo(this.value)">
+                    <option value="200">Ventana: 10 Segundos</option>
+                    <option value="600" selected>Ventana: 30 Segundos</option>
+                    <option value="1200">Ventana: 1 Minuto (60s)</option>
+                    <option value="2400">Ventana: 2 Minutos (120s)</option>
+                    <option value="6000">Ventana: 5 Minutos (300s)</option>
+                    <option value="999999">Historial Completo (Sin Corte)</option>
+                </select>
+            </div>
+            <a href="/api/descargar_log" class="btn-connect" target="_blank">📥 Descargar Log CSV</a>
+        </div>
+        <div class="chart-container-box">
+            <canvas id="graficoAnalisis"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================
+     PESTAÑA 6: CONSOLA MAVLINK & EVENTOS
+========================================================= -->
+<div id="tab-consola" class="tab-content">
+    <div class="panel">
+        <div class="panel-header">
+            <div class="panel-title">💻 Registro en Vivo de Mensajes MAVLink & Eventos</div>
+            <div style="display:flex; gap:8px;">
+                <button class="btn-mode" onclick="limpiarConsola()">Limpiar</button>
+            </div>
+        </div>
+        <div id="consola-completa">
+            <div class="log-row"><span class="log-time">[0.00s]</span> <span class="log-info">[GCS]</span> Estación Terrena UBO Pixhawk 6X inicializada.</div>
+            <div class="log-row"><span class="log-time">[0.00s]</span> <span class="log-success">[GCS]</span> Conexión MAVLink a 20Hz lista.</div>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================
+     PESTAÑA 7: SIMULADOR & REPRODUCTOR DE LOGS CSV
+========================================================= -->
+<div id="tab-simulador" class="tab-content">
+    <div class="panel">
+        <div class="panel-header">
+            <div class="panel-title">📁 Reproductor de Vuelos / Simulador de Telemetría</div>
+            <div id="sim-badge-info" style="font-size:12px; color:var(--cyan); font-family:var(--font-mono);">Modo: Inactivo</div>
+        </div>
+        <div class="sim-controls-bar">
+            <button id="btnSimPlay" class="btn-connect" onclick="toggleSimulacion()">▶ Iniciar Simulación</button>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <label style="font-size:12px; color:var(--text-muted);">Velocidad:</label>
+                <select id="simVelSelect" class="conn-select" onchange="cambiarVelocidadSim(this.value)">
+                    <option value="0.5">0.5x</option>
+                    <option value="1.0" selected>1.0x (Tiempo Real)</option>
+                    <option value="2.0">2.0x</option>
+                    <option value="4.0">4.0x</option>
+                </select>
+            </div>
+            <div style="font-size:12px; color:var(--text-muted); margin-left:auto;">
+                Puntos de Telemetría: <strong id="sim-progress" style="color:#ffffff;">0 / 0</strong>
+            </div>
+        </div>
+        <p style="font-size:12px; color:var(--text-muted); line-height:1.6;">
+            El simulador alimenta la estación terrena con datos grabados de vuelos anteriores ([telemetria_escritorio.csv]), reproduciendo el PFD, gráficos, mapa geoespacial y alarmas exactamente como si el dron estuviera en el aire.
+        </p>
+    </div>
+</div>
+
+<!-- =========================================================
+     PESTAÑA 8: PLANIFICADOR DE MISIÓN & RUTAS (SETPOINTS)
+========================================================= -->
+<div id="tab-mision" class="tab-content">
+    <div class="panel" style="margin-bottom:12px;">
+        <div class="panel-header" style="flex-wrap:wrap; gap:10px;">
+            <div class="panel-title">🗺️ PLANIFICADOR DE RUTA DE VUELO & SETPOINTS (QGROUNDCONTROL)</div>
+            
+            <div style="display:flex; align-items:center; gap:8px; margin-left:auto; flex-wrap:wrap;">
+                <label style="font-size:12px; color:var(--text-muted);">Altitud Defecto:</label>
+                <input type="number" id="misionAltDefecto" value="20" min="1" max="500" class="conn-select" style="width:70px;" onchange="renderizarMision()">
+                <span style="font-size:12px; color:var(--text-muted);">m</span>
+                
+                <label style="font-size:12px; color:var(--text-muted); margin-left:8px;">Velocidad:</label>
+                <input type="number" id="misionVelDefecto" value="5" min="1" max="30" class="conn-select" style="width:70px;" onchange="renderizarMision()">
+                <span style="font-size:12px; color:var(--text-muted);">m/s</span>
+
+                <button class="btn-connect" onclick="subirMisionAutopiloto()" style="background:linear-gradient(135deg, #10b981, #059669);" title="Enviar Misión al Pixhawk vía MAVLink">🚀 Enviar al Dron</button>
+                <button class="btn-connect" onclick="descargarMisionAutopiloto()" style="background:#1e293b;" title="Descargar Misión guardada en el Pixhawk">📥 Descargar Dron</button>
+                <button class="btn-connect" onclick="iniciarMisionAuto()" style="background:linear-gradient(135deg, #f59e0b, #d97706);" title="Cambiar a Modo AUTO para ejecutar la misión">▶ Iniciar (AUTO)</button>
+                <button class="btn-connect" onclick="exportarPlanQGC()" style="background:#0284c7;" title="Exportar Misión como archivo .plan para QGroundControl">💾 Exportar QGC .plan</button>
+                <label class="btn-connect" style="background:#475569; cursor:pointer;" title="Importar archivo .plan o .waypoints de QGroundControl">
+                    📂 Importar QGC
+                    <input type="file" id="qgcFileInput" accept=".plan,.json" style="display:none;" onchange="importarPlanQGC(this)">
+                </label>
+                <button class="btn-connect" onclick="limpiarMision()" style="background:#dc2626;" title="Eliminar todos los setpoints">🗑️ Limpiar</button>
+            </div>
+        </div>
+
+        <!-- BARRA DE ESTADÍSTICAS Y MODO EDICIÓN -->
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 12px; background:rgba(6, 11, 22, 0.6); border-radius:8px; margin-top:8px; flex-wrap:wrap;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:12px; font-weight:700; color:var(--cyan);">MODO DE EDICIÓN:</span>
+                <span style="font-size:12px; color:var(--text-dim);" id="modoEdicionTexto">🟢 Haz clic en cualquier lugar del mapa para agregar un nuevo setpoint/waypoint.</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px; font-size:12px;">
+                <span>📍 Setpoints: <strong id="mision-count" style="color:#ffffff;">0</strong></span>
+                <span>📏 Distancia Total: <strong id="mision-distancia" style="color:var(--cyan);">0.0 m</strong></span>
+                <span>⏱ Tiempo Est.: <strong id="mision-tiempo" style="color:var(--amber);">00:00</strong></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- LAYOUT DIVIDIDO: MAPA TÁCTICO & TABLA DE SETPOINTS -->
+    <div style="display:grid; grid-template-columns: 1.2fr 1fr; gap:16px;">
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">🗺️ MAPA INTERACTIVO DE MISIONES (SETPOINTS NUMERADOS)</div>
+                <button class="btn-connect" onclick="centrarMapaMision()" style="background:#1e293b; padding:4px 8px; font-size:11px;">🎯 Centrar Mapa</button>
+            </div>
+            <div id="mapa-mision-container" style="height:520px; width:100%; border-radius:10px; border:1px solid var(--border-color); overflow:hidden;"></div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">📋 SECUENCIA DE WAYPOINTS DE VUELO</div>
+            </div>
+            <div style="max-height:520px; overflow-y:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:left;">
+                    <thead>
+                        <tr style="border-bottom:1px solid var(--border-color); color:var(--text-muted); background:rgba(15, 23, 42, 0.8);">
+                            <th style="padding:8px;">#</th>
+                            <th style="padding:8px;">COMANDO</th>
+                            <th style="padding:8px;">LATITUD</th>
+                            <th style="padding:8px;">LONGITUD</th>
+                            <th style="padding:8px;">ALT (m)</th>
+                            <th style="padding:8px;">ACCIONES</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-mision-body">
+                        <!-- Se puebla dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <span>🚁 ESTACIÓN TERRENA GCS V3.0 (UBO)</span>
+    <span>⚡ PROTOCOLO: MAVLINK V2.0 / PX4 & ARDUPILOT</span>
+    <span>📡 TASA STREAMING: 20 HZ EN VIVO</span>
+    <span id="footer-status">ESTADO: LISTO</span>
+</footer>
+
+<!-- =========================================================
+     SCRIPTS Y LÓGICA DE CONTROL GCS
+========================================================= -->
+<script>
+/* =========================================================
+   1. GESTIÓN DE PESTAÑAS
+========================================================= */
+function cambiarPestana(tabId, btn) {
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    
+    document.getElementById(tabId).classList.add('active');
+    btn.classList.add('active');
+
+    if (tabId === 'tab-pfd' && typeof mapa !== 'undefined') {
+        setTimeout(() => mapa.invalidateSize(), 150);
+    }
+    if (tabId === 'tab-mision') {
+        setTimeout(() => initMapaMision(), 150);
+    }
+}
+
+/* =========================================================
+   2. MAPA GEOESPACIAL TÁCTICO (LEAFLET + TILES OFFLINE)
+========================================================= */
+const ORIGEN_LAT = -33.467225;
+const ORIGEN_LON = -70.657605;
+const mapa = L.map('mapa-container', { zoomControl: true }).setView([ORIGEN_LAT, ORIGEN_LON], 17);
+
+// Soporte de mapa offline local con fallback a OpenStreetMap online
+const tilesOffline = L.tileLayer('/static/tiles/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    minZoom: 14,
+    errorTileUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+}).addTo(mapa);
+
+// Marcador del Dron con orientación y Estela de Vuelo (Polyline)
+const markerDron = L.circleMarker([ORIGEN_LAT, ORIGEN_LON], {
+    color: '#00f2fe',
+    fillColor: '#f43f5e',
+    fillOpacity: 0.9,
+    radius: 8,
+    weight: 2
+}).addTo(mapa);
+
+const trayectoryLine = L.polyline([], { color: '#00f2fe', weight: 3, opacity: 0.8 }).addTo(mapa);
+
+/* =========================================================
+   3. PRIMARY FLIGHT DISPLAY (PFD) 60 FPS EN CANVAS
+========================================================= */
+const pfdCanvas = document.getElementById("pfdCanvas");
+const pfdCtx = pfdCanvas.getContext("2d");
+
+let pfdState = {
+    pitch: 0.0,
+    roll: 0.0,
+    yaw: 0.0,
+    alt: 0.0,
+    speed: 0.0,
+    climb: 0.0,
+    armed: false,
+    mode: "DESCONOCIDO"
+};
+
+function renderPFD() {
+    const w = pfdCanvas.width;
+    const h = pfdCanvas.height;
+    const cx = w / 2;
+    const cy = h / 2;
+
+    pfdCtx.clearRect(0, 0, w, h);
+
+    // 1. Guardar contexto para rotación de Roll
+    pfdCtx.save();
+    pfdCtx.translate(cx, cy);
+    pfdCtx.rotate(-pfdState.roll);
+
+    // Desplazamiento vertical por Pitch (1 grado = ~3.5 pixeles)
+    const pitchOffset = (pfdState.pitch * (180 / Math.PI)) * 3.5;
+
+    // Fondo Cielo (Sky) y Tierra (Ground)
+    pfdCtx.fillStyle = "#0c2b5e"; // Azul cielo oscuro
+    pfdCtx.fillRect(-w, -h * 2 + pitchOffset, w * 2, h * 2);
+
+    pfdCtx.fillStyle = "#3d2211"; // Marrón tierra oscuro
+    pfdCtx.fillRect(-w, pitchOffset, w * 2, h * 2);
+
+    // Línea de horizonte blanca
+    pfdCtx.strokeStyle = "#ffffff";
+    pfdCtx.lineWidth = 2.5;
+    pfdCtx.beginPath();
+    pfdCtx.moveTo(-w, pitchOffset);
+    pfdCtx.lineTo(w, pitchOffset);
+    pfdCtx.stroke();
+
+    // Escala de Cabeceo (Pitch Ladder)
+    pfdCtx.strokeStyle = "#ffffff";
+    pfdCtx.fillStyle = "#ffffff";
+    pfdCtx.font = "10px monospace";
+    pfdCtx.textAlign = "center";
+    pfdCtx.lineWidth = 1.5;
+
+    for (let deg = -80; deg <= 80; deg += 10) {
+        if (deg === 0) continue;
+        const yPos = pitchOffset - (deg * 3.5);
+        const lineLen = Math.abs(deg) % 20 === 0 ? 60 : 35;
+
+        pfdCtx.beginPath();
+        pfdCtx.moveTo(-lineLen, yPos);
+        pfdCtx.lineTo(lineLen, yPos);
+        pfdCtx.stroke();
+
+        pfdCtx.fillText(deg + "°", lineLen + 14, yPos + 3);
+        pfdCtx.fillText(deg + "°", -lineLen - 14, yPos + 3);
+    }
+
+    pfdCtx.restore();
+
+    // 2. Arco de Alabeo (Roll Arc) superior fijo
+    pfdCtx.save();
+    pfdCtx.strokeStyle = "rgba(255, 255, 255, 0.6)";
+    pfdCtx.lineWidth = 2;
+    pfdCtx.beginPath();
+    pfdCtx.arc(cx, cy, 140, Math.PI * 1.2, Math.PI * 1.8);
+    pfdCtx.stroke();
+
+    // Puntero de Roll
+    pfdCtx.save();
+    pfdCtx.translate(cx, cy);
+    pfdCtx.rotate(-pfdState.roll);
+    pfdCtx.fillStyle = "#facc15";
+    pfdCtx.beginPath();
+    pfdCtx.moveTo(0, -140);
+    pfdCtx.lineTo(-8, -125);
+    pfdCtx.lineTo(8, -125);
+    pfdCtx.closePath();
+    pfdCtx.fill();
+    pfdCtx.restore();
+    pfdCtx.restore();
+
+    // 3. Símbolo del Avión / Dron en el Centro (Fijo)
+    pfdCtx.fillStyle = "#facc15";
+    pfdCtx.strokeStyle = "#000000";
+    pfdCtx.lineWidth = 2;
+    // Barra central
+    pfdCtx.fillRect(cx - 30, cy - 3, 20, 6);
+    pfdCtx.fillRect(cx + 10, cy - 3, 20, 6);
+    pfdCtx.beginPath();
+    pfdCtx.arc(cx, cy, 4, 0, Math.PI * 2);
+    pfdCtx.fill();
+
+    // 4. Cinta de Velocidad (Izquierda)
+    pfdCtx.fillStyle = "rgba(10, 18, 36, 0.85)";
+    pfdCtx.strokeStyle = "var(--border-color)";
+    pfdCtx.fillRect(10, 50, 55, h - 100);
+    pfdCtx.strokeRect(10, 50, 55, h - 100);
+
+    pfdCtx.fillStyle = "#00f2fe";
+    pfdCtx.font = "bold 13px monospace";
+    pfdCtx.textAlign = "center";
+    pfdCtx.fillText(pfdState.speed.toFixed(1), 37, cy);
+    pfdCtx.fillStyle = "#94a3b8";
+    pfdCtx.font = "9px sans-serif";
+    pfdCtx.fillText("m/s", 37, cy + 14);
+
+    // 5. Cinta de Altitud (Derecha)
+    pfdCtx.fillStyle = "rgba(10, 18, 36, 0.85)";
+    pfdCtx.fillRect(w - 65, 50, 55, h - 100);
+    pfdCtx.strokeRect(w - 65, 50, 55, h - 100);
+
+    pfdCtx.fillStyle = "#10b981";
+    pfdCtx.font = "bold 13px monospace";
+    pfdCtx.fillText(pfdState.alt.toFixed(1), w - 37, cy);
+    pfdCtx.fillStyle = "#94a3b8";
+    pfdCtx.font = "9px sans-serif";
+    pfdCtx.fillText("ALT (m)", w - 37, cy + 14);
+
+    // 6. Cinta de Rumbo / Compás Superior
+    pfdCtx.fillStyle = "rgba(10, 18, 36, 0.85)";
+    pfdCtx.fillRect(cx - 100, 10, 200, 28);
+    pfdCtx.strokeRect(cx - 100, 10, 200, 28);
+
+    const degHeading = Math.round(((pfdState.yaw * (180 / Math.PI)) + 360) % 360);
+    pfdCtx.fillStyle = "#ffffff";
+    pfdCtx.font = "bold 13px monospace";
+    pfdCtx.fillText(`HDG: ${degHeading}°`, cx, 29);
+
+    requestAnimationFrame(renderPFD);
+}
+renderPFD();
+
+/* =========================================================
+   4. GRÁFICOS DINÁMICOS CHART.JS
+========================================================= */
+let historial = {
+    tiempo: [],
+    pitch: [], roll: [], yaw: [],
+    alt_rel: [], groundspeed: [],
+    vibe_x: [], vibe_y: [], vibe_z: [],
+    volts: [], curr: [],
+    acc_x: [], acc_y: [], acc_z: []
+};
+let ventanaMaxPuntos = 600; // Default: 30s a 20Hz
+let ultimoTiempoRegistrado = -1;
+let usandoSSE = false;
+
+const graficoAnalisis = new Chart(document.getElementById("graficoAnalisis"), {
+    type: "line",
+    data: {
+        labels: historial.tiempo,
+        datasets: [
+            { label: "Pitch (rad)", data: historial.pitch, borderColor: "#a3e635", borderWidth: 2, tension: 0.2, pointRadius: 0 },
+            { label: "Roll (rad)", data: historial.roll, borderColor: "#facc15", borderWidth: 2, tension: 0.2, pointRadius: 0 },
+            { label: "Yaw (rad)", data: historial.yaw, borderColor: "#fb7185", borderWidth: 2, tension: 0.2, pointRadius: 0 }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        scales: {
+            x: { grid: { color: "rgba(255,255,255,0.05)" } },
+            y: { grid: { color: "rgba(255,255,255,0.05)" } }
+        }
+    }
+});
+
+function cambiarGrupoGrafico(grupo) {
+    if (grupo === 'actitud') {
+        graficoAnalisis.data.datasets = [
+            { label: "Pitch (rad)", data: historial.pitch, borderColor: "#a3e635", borderWidth: 2, pointRadius: 0 },
+            { label: "Roll (rad)", data: historial.roll, borderColor: "#facc15", borderWidth: 2, pointRadius: 0 },
+            { label: "Yaw (rad)", data: historial.yaw, borderColor: "#fb7185", borderWidth: 2, pointRadius: 0 }
+        ];
+    } else if (grupo === 'alt_vel') {
+        graficoAnalisis.data.datasets = [
+            { label: "Altitud Rel (m)", data: historial.alt_rel, borderColor: "#00f2fe", borderWidth: 2, pointRadius: 0 },
+            { label: "Groundspeed (m/s)", data: historial.groundspeed, borderColor: "#a855f7", borderWidth: 2, pointRadius: 0 }
+        ];
+    } else if (grupo === 'vibracion') {
+        graficoAnalisis.data.datasets = [
+            { label: "Vibe X (m/s²)", data: historial.vibe_x, borderColor: "#38bdf8", borderWidth: 2, pointRadius: 0 },
+            { label: "Vibe Y (m/s²)", data: historial.vibe_y, borderColor: "#f43f5e", borderWidth: 2, pointRadius: 0 },
+            { label: "Vibe Z (m/s²)", data: historial.vibe_z, borderColor: "#eab308", borderWidth: 2, pointRadius: 0 }
+        ];
+    } else if (grupo === 'bateria') {
+        graficoAnalisis.data.datasets = [
+            { label: "Voltaje (V)", data: historial.volts, borderColor: "#10b981", borderWidth: 2, pointRadius: 0 },
+            { label: "Corriente (A)", data: historial.curr, borderColor: "#f97316", borderWidth: 2, pointRadius: 0 }
+        ];
+    } else if (grupo === 'imu') {
+        graficoAnalisis.data.datasets = [
+            { label: "Acc X", data: historial.acc_x, borderColor: "#38bdf8", borderWidth: 2, pointRadius: 0 },
+            { label: "Acc Y", data: historial.acc_y, borderColor: "#f43f5e", borderWidth: 2, pointRadius: 0 },
+            { label: "Acc Z", data: historial.acc_z, borderColor: "#eab308", borderWidth: 2, pointRadius: 0 }
+        ];
+    }
+    graficoAnalisis.update('none');
+}
+
+function cambiarVentanaTiempo(puntos) {
+    ventanaMaxPuntos = parseInt(puntos);
+    trimHistorial();
+    graficoAnalisis.update('none');
+}
+
+function trimHistorial() {
+    while (historial.tiempo.length > ventanaMaxPuntos) {
+        historial.tiempo.shift();
+        historial.pitch.shift();
+        historial.roll.shift();
+        historial.yaw.shift();
+        historial.alt_rel.shift();
+        historial.groundspeed.shift();
+        historial.volts.shift();
+        historial.curr.shift();
+        historial.vibe_x.shift();
+        historial.vibe_y.shift();
+        historial.vibe_z.shift();
+        historial.acc_x.shift();
+        historial.acc_y.shift();
+        historial.acc_z.shift();
+    }
+}
+
+/* =========================================================
+   5. ACTUALIZACIÓN DE TELEMETRÍA EN TIEMPO REAL (SSE + POLL)
+========================================================= */
+let evtSource = null;
+
+function iniciarSSE() {
+    if (!!window.EventSource) {
+        evtSource = new EventSource("/api/stream");
+        evtSource.onmessage = function(e) {
+            try {
+                usandoSSE = true;
+                const d = JSON.parse(e.data);
+                procesarDatosTelemetria(d);
+            } catch (err) {
+                console.error("Error SSE:", err);
+            }
+        };
+        evtSource.onerror = function() {
+            usandoSSE = false;
+            console.warn("SSE desconectado, usando polling regular...");
+        };
+    }
+}
+iniciarSSE();
+
+// Polling de respaldo (solo si SSE no está funcionando)
+setInterval(async () => {
+    if (usandoSSE) return;
+    try {
+        const res = await fetch("/api/datos");
+        const d = await res.json();
+        procesarDatosTelemetria(d);
+    } catch (e) {}
+}, 100);
+
+function procesarDatosTelemetria(d) {
+    if (!d) return;
+
+    // Actualizar estado PFD
+    pfdState.pitch = d.actitud ? d.actitud.pitch : 0;
+    pfdState.roll = d.actitud ? d.actitud.roll : 0;
+    pfdState.yaw = d.actitud ? d.actitud.yaw : 0;
+    pfdState.alt = d.gps ? d.gps.alt_rel : 0;
+    pfdState.speed = d.vfr_hud ? d.vfr_hud.groundspeed : 0;
+    pfdState.armed = d.sistema ? d.sistema.armado : false;
+    pfdState.mode = d.sistema ? d.sistema.modo_vuelo : "DESCONOCIDO";
+
+    // 1. Badges Encabezado
+    const bMav = document.getElementById("badge-mavlink");
+    if (d.conectado) {
+        bMav.className = "badge online";
+        bMav.innerText = d.conexion.simulacion ? "● SIMULADOR ACTIVO" : "● MAVLINK ACTIVO";
+    } else {
+        bMav.className = "badge offline";
+        bMav.innerText = "● MAVLINK BUSCANDO";
+    }
+
+    document.getElementById("badge-hz").innerText = `${d.hz_recepcion || 0} Hz`;
+    document.getElementById("badge-modo").innerText = `MODO: ${pfdState.mode}`;
+    
+    const bArm = document.getElementById("badge-armado");
+    if (pfdState.armed) {
+        bArm.className = "badge armed";
+        bArm.innerText = "⚠️ ARMADO";
+    } else {
+        bArm.className = "badge disarmed";
+        bArm.innerText = "● DESARMADO";
+    }
+
+    if (d.gps) {
+        document.getElementById("badge-gps").innerText = `GPS: ${d.gps.fix_desc} (${d.gps.satellites} Sats)`;
+        document.getElementById("map-sats-badge").innerText = d.gps.satellites;
+        document.getElementById("gps-coords-badge").innerText = `${d.gps.lat.toFixed(5)}, ${d.gps.lon.toFixed(5)}`;
+    }
+
+    if (d.sistema) {
+        document.getElementById("badge-bateria").innerText = `BAT: ${d.sistema.voltaje_bateria}V (${d.sistema.bateria_pct}%) | ${d.sistema.voltaje_celda}V/c`;
+    }
+
+    // 2. Cinta Dashboard
+    if (d.actitud) {
+        document.getElementById("d-pitch").innerText = d.actitud.pitch.toFixed(3);
+        document.getElementById("d-pitch-deg").innerText = d.actitud.pitch_deg;
+        document.getElementById("d-roll").innerText = d.actitud.roll.toFixed(3);
+        document.getElementById("d-roll-deg").innerText = d.actitud.roll_deg;
+        document.getElementById("d-yaw").innerText = d.actitud.yaw.toFixed(3);
+        document.getElementById("d-yaw-deg").innerText = d.actitud.yaw_deg;
+    }
+    if (d.gps) {
+        document.getElementById("d-alt-rel").innerText = d.gps.alt_rel;
+    }
+    if (d.vfr_hud) {
+        document.getElementById("d-speed").innerText = d.vfr_hud.groundspeed;
+        document.getElementById("d-speed-kmh").innerText = (d.vfr_hud.groundspeed * 3.6).toFixed(1);
+    }
+    if (d.sistema) {
+        document.getElementById("d-bat-pct").innerText = d.sistema.bateria_pct + "%";
+        document.getElementById("d-bat-volts").innerText = `${d.sistema.voltaje_bateria} V | ${d.sistema.corriente_bateria} A`;
+    }
+
+    // 3. Monitor de Vibraciones
+    if (d.vibracion) {
+        const vx = d.vibracion.vibe_x;
+        const vy = d.vibracion.vibe_y;
+        const vz = d.vibracion.vibe_z;
+
+        document.getElementById("vibe-val-x").innerText = vx + " m/s²";
+        document.getElementById("vibe-val-y").innerText = vy + " m/s²";
+        document.getElementById("vibe-val-z").innerText = vz + " m/s²";
+
+        document.getElementById("vibe-bar-x").style.width = Math.min((vx / 60) * 100, 100) + "%";
+        document.getElementById("vibe-bar-y").style.width = Math.min((vy / 60) * 100, 100) + "%";
+        document.getElementById("vibe-bar-z").style.width = Math.min((vz / 60) * 100, 100) + "%";
+
+        document.getElementById("vibe-clip").innerText = `${d.vibracion.clip_0} / ${d.vibracion.clip_1} / ${d.vibracion.clip_2}`;
+        document.getElementById("vibe-status-tag").innerText = d.vibracion.nivel_salud;
+    }
+
+    // 4. Salud EKF
+    if (d.ekf) {
+        document.getElementById("ekf-vel-var").innerText = d.ekf.velocity_variance;
+        document.getElementById("ekf-horiz-var").innerText = d.ekf.pos_horiz_variance;
+        document.getElementById("ekf-vert-var").innerText = d.ekf.pos_vert_variance;
+        document.getElementById("ekf-compass-var").innerText = d.ekf.compass_variance;
+        document.getElementById("ekf-terrain-var").innerText = d.ekf.terrain_alt_variance;
+        document.getElementById("ekf-status-tag").innerText = d.ekf.salud_ekf;
+    }
+
+    // 5. Sensores IMU y Energía
+    if (d.imu) {
+        document.getElementById("s-acc").innerText = `${d.imu.acc_x} / ${d.imu.acc_y} / ${d.imu.acc_z}`;
+        document.getElementById("s-gyro").innerText = `${d.imu.gyro_x} / ${d.imu.gyro_y} / ${d.imu.gyro_z}`;
+        document.getElementById("s-mag").innerText = `${d.imu.mag_x} / ${d.imu.mag_y} / ${d.imu.mag_z}`;
+        document.getElementById("s-press").innerText = d.imu.presion_hpa;
+        document.getElementById("s-temp").innerText = d.sistema ? d.sistema.temperatura_placa : 25.0;
+    }
+    if (d.sistema) {
+        document.getElementById("s-bat-v").innerText = d.sistema.voltaje_bateria;
+        document.getElementById("s-cell-v").innerText = d.sistema.voltaje_celda;
+        document.getElementById("s-bat-a").innerText = d.sistema.corriente_bateria;
+        document.getElementById("s-mah").innerText = d.sistema.mah_consumidos;
+        document.getElementById("s-cpu").innerText = d.sistema.carga_cpu;
+        document.getElementById("s-drop").innerText = d.sistema.perdida_com;
+    }
+
+    // 6. Mapa y Trayectoria
+    if (d.gps && d.gps.lat !== 0 && d.gps.lon !== 0 && Math.abs(d.gps.lat) > 1) {
+        const nuevaPos = [d.gps.lat, d.gps.lon];
+        markerDron.setLatLng(nuevaPos);
+        trayectoryLine.addLatLng(nuevaPos);
+    }
+
+    // 7. Historial y Gráficos (evitar duplicados y truncado prematuro)
+    if (d.conectado && d.tiempo !== undefined && d.tiempo !== ultimoTiempoRegistrado) {
+        ultimoTiempoRegistrado = d.tiempo;
+
+        historial.tiempo.push(d.tiempo.toFixed(1) + "s");
+        historial.pitch.push(d.actitud ? d.actitud.pitch : 0);
+        historial.roll.push(d.actitud ? d.actitud.roll : 0);
+        historial.yaw.push(d.actitud ? d.actitud.yaw : 0);
+        historial.alt_rel.push(d.gps ? d.gps.alt_rel : 0);
+        historial.groundspeed.push(d.vfr_hud ? d.vfr_hud.groundspeed : 0);
+        historial.volts.push(d.sistema ? d.sistema.voltaje_bateria : 0);
+        historial.curr.push(d.sistema ? d.sistema.corriente_bateria : 0);
+        historial.vibe_x.push(d.vibracion ? d.vibracion.vibe_x : 0);
+        historial.vibe_y.push(d.vibracion ? d.vibracion.vibe_y : 0);
+        historial.vibe_z.push(d.vibracion ? d.vibracion.vibe_z : 0);
+        historial.acc_x.push(d.imu ? d.imu.acc_x : 0);
+        historial.acc_y.push(d.imu ? d.imu.acc_y : 0);
+        historial.acc_z.push(d.imu ? d.imu.acc_z : 0);
+        trimHistorial();
+
+        graficoAnalisis.data.labels = historial.tiempo;
+        graficoAnalisis.update('none');
+    }
+
+    // 8. Mensajes de consola MAVLink (STATUSTEXT)
+    if (d.mensajes_estado && d.mensajes_estado.length > 0) {
+        const consola = document.getElementById("consola-completa");
+        d.mensajes_estado.forEach(m => {
+            const rowId = `msg-${m.tiempo}-${m.texto.replace(/\s+/g, '')}`;
+            if (!document.getElementById(rowId)) {
+                const div = document.createElement("div");
+                div.id = rowId;
+                div.className = "log-row";
+                div.innerHTML = `<span class="log-time">[${m.tiempo.toFixed(2)}s]</span> <span class="${m.severidad <= 3 ? 'log-danger' : (m.severidad <= 4 ? 'log-warn' : 'log-info')}">${m.texto}</span>`;
+                consola.appendChild(div);
+                consola.scrollTop = consola.scrollHeight;
+            }
+        });
+    }
+
+    // 9. Estado del Simulador
+    if (d.simulador) {
+        document.getElementById("sim-progress").innerText = `${d.simulador.indice} / ${d.simulador.total}`;
+        document.getElementById("sim-badge-info").innerText = d.simulador.activo ? `Reproduciendo a ${d.simulador.velocidad}x` : "Inactivo";
+    }
+}
+
+/* =========================================================
+   6. CONECTIVIDAD DINÁMICA & PUERTOS
+========================================================= */
+let estaConectado = false;
+
+function onPuertoSelectChange() {
+    const select = document.getElementById("puertoSelect");
+    const customInput = document.getElementById("puertoCustomInput");
+    if (select.value === "CUSTOM") {
+        customInput.style.display = "inline-block";
+        customInput.focus();
+    } else {
+        customInput.style.display = "none";
+    }
+}
+
+async function refrescarPuertos() {
+    try {
+        const res = await fetch("/api/conexiones/puertos");
+        const data = await res.json();
+        const select = document.getElementById("puertoSelect");
+        const valorPrevio = select.value;
+        const customInput = document.getElementById("puertoCustomInput");
+        const customVal = customInput.value;
+
+        select.innerHTML = "";
+        data.puertos.forEach(p => {
+            const opt = document.createElement("option");
+            opt.value = p.id;
+            opt.innerText = p.nombre;
+            select.appendChild(opt);
+        });
+
+        // Opción fija para entrada libre de texto
+        const optCustom = document.createElement("option");
+        optCustom.value = "CUSTOM";
+        optCustom.innerText = "✏️ Otro / Escribir puerto...";
+        select.appendChild(optCustom);
+
+        // Preservar la selección previa del usuario
+        if (valorPrevio === "CUSTOM" || customVal) {
+            select.value = "CUSTOM";
+            customInput.style.display = "inline-block";
+        } else if (Array.from(select.options).some(o => o.value === valorPrevio)) {
+            select.value = valorPrevio;
+            customInput.style.display = "none";
+        } else {
+            customInput.style.display = "none";
+        }
+    } catch (e) {
+        console.error("Error al listar puertos:", e);
+    }
+}
+refrescarPuertos();
+
+async function solicitarPuertoWebSerial() {
+    if (!('serial' in navigator)) {
+        alert("Web Serial API no está disponible en este navegador. Utiliza Chrome, Edge, Opera o Brave, o selecciona/escribe el puerto COM en el menú desplegable.");
+        return;
+    }
+    try {
+        const port = await navigator.serial.requestPort();
+        const info = port.getInfo();
+        let portDesc = "Dispositivo Serial USB";
+        if (info.usbVendorId) {
+            portDesc += ` (VID:${info.usbVendorId.toString(16)}, PID:${info.usbProductId ? info.usbProductId.toString(16) : ''})`;
+        }
+        
+        const customPort = prompt(`Dispositivo seleccionado por el navegador:\n${portDesc}\n\nIngresa el nombre de puerto COM asignado en tu sistema operativo (Ejemplo: COM8, COM5, /dev/ttyUSB0):`, "COM8");
+        if (customPort && customPort.trim()) {
+            const puertoLimpio = customPort.trim();
+            const select = document.getElementById("puertoSelect");
+            const customInput = document.getElementById("puertoCustomInput");
+            
+            // Insertar la nueva opción detectada por el navegador
+            let optExistente = Array.from(select.options).find(o => o.value === puertoLimpio);
+            if (!optExistente) {
+                optExistente = document.createElement("option");
+                optExistente.value = puertoLimpio;
+                optExistente.innerText = `${puertoLimpio} (${portDesc})`;
+                select.insertBefore(optExistente, select.lastChild);
+            }
+            select.value = puertoLimpio;
+            customInput.style.display = "none";
+        }
+    } catch (e) {
+        if (e.name !== "NotFoundError") {
+            console.error("Error al acceder a Web Serial API:", e);
+        }
+    }
+}
+
+function obtenerPuertoSeleccionado() {
+    const select = document.getElementById("puertoSelect");
+    const customInput = document.getElementById("puertoCustomInput");
+    if (select.value === "CUSTOM") {
+        return customInput.value.trim() || "COM7";
+    }
+    return select.value;
+}
+
+async function toggleConexion() {
+    const btn = document.getElementById("btnConectar");
+    const puerto = obtenerPuertoSeleccionado();
+    const baud = document.getElementById("baudSelect").value;
+
+    if (!estaConectado) {
+        btn.innerText = "⏳ Conectando...";
+        btn.disabled = true;
+        try {
+            const res = await fetch("/api/conectar", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ puerto: puerto, baud: baud })
+            });
+            const d = await res.json();
+            estaConectado = true;
+            btn.className = "btn-connect connected";
+            btn.innerText = "🛑 Desconectar";
+        } catch (err) {
+            alert(`Error al conectar con ${puerto}: ` + err);
+            btn.innerText = "🔌 Conectar";
+        } finally {
+            btn.disabled = false;
+        }
+    } else {
+        await fetch("/api/desconectar", { method: "POST" });
+        estaConectado = false;
+        btn.className = "btn-connect";
+        btn.innerText = "🔌 Conectar";
+    }
+}
+
+/* =========================================================
+   7. CONTROL DE SIMULACIÓN / LOG REPLAY
+========================================================= */
+let simulacionActiva = false;
+
+async function toggleSimulacion() {
+    simulacionActiva = !simulacionActiva;
+    const accion = simulacionActiva ? "iniciar" : "detener";
+    await fetch(`/api/simulacion/${accion}`, { method: "POST" });
+
+    document.getElementById("simLed").innerText = simulacionActiva ? "🟢" : "⚪";
+    document.getElementById("btnSimPlay").innerText = simulacionActiva ? "⏸ Pausar Simulación" : "▶ Iniciar Simulación";
+}
+
+function cambiarVelocidadSim(vel) {
+    fetch(`/api/simulacion/velocidad?vel=${vel}`, { method: "POST" });
+}
+
+/* =========================================================
+   8. COMANDOS DE VUELO Y SEGURIDAD
+========================================================= */
+function enviarCambioModo(modo) {
+    fetch(`/api/modo/${modo}`, { method: "POST" })
+        .then(r => r.json())
+        .then(d => logConsola(`[Modo] ${d.mensaje}`, d.status === 'ok' ? 'success' : 'danger'));
+}
+
+function modalArmar() {
+    const armar = !pfdState.armed;
+    const accion = armar ? "ARMAR" : "DESARMAR";
+    if (confirm(`¿Confirmar comando para ${accion} los motores del Pixhawk?`)) {
+        fetch(`/api/armar/${armar ? 1 : 0}`, { method: "POST" })
+            .then(r => r.json())
+            .then(d => logConsola(`[Seguridad] ${d.mensaje}`, 'warn'));
+    }
+}
+
+function paradaEmergencia() {
+    fetch("/api/motor/stop_all", { method: "POST" })
+        .then(r => r.json())
+        .then(d => logConsola("[EMERGENCIA] Todos los motores detenidos de forma inmediata.", "danger"));
+}
+
+/* =========================================================
+   9. BANCO DE ACTUADORES
+========================================================= */
+let timeoutsSliders = {};
+
+function toggleSafety(checkbox) {
+    const sliders = document.querySelectorAll('.motors-grid input[type=range], #slider-master');
+    sliders.forEach(s => s.disabled = !checkbox.checked);
+    if (!checkbox.checked) paradaEmergencia();
+}
+
+function actualizarSlider(id, val) {
+    document.getElementById(`val-m${id}`).innerText = val + "%";
+    if (timeoutsSliders[id]) clearTimeout(timeoutsSliders[id]);
+    timeoutsSliders[id] = setTimeout(() => {
+        fetch(`/api/motor/${id}/${val}`, { method: "POST" });
+    }, 100);
+}
+
+function actualizarSliderMaster(val) {
+    document.getElementById("val-master").innerText = val + "%";
+    for (let i = 1; i <= 8; i++) {
+        const sl = document.getElementById(`slider-${i}`);
+        if (sl) {
+            sl.value = val;
+            actualizarSlider(i, val);
+        }
+    }
+}
+
+/* =========================================================
+   10. SINTONIZADOR DE PARÁMETROS PID
+========================================================= */
+function guardarGrupoPID(prefijo, idBase) {
+    const p = document.getElementById(`${idBase}_p`).value;
+    const i = document.getElementById(`${idBase}_i`).value;
+    const d = document.getElementById(`${idBase}_d`).value;
+
+    fetch(`/api/parametro/${prefijo}_P/${p}`, { method: "POST" });
+    fetch(`/api/parametro/${prefijo}_I/${i}`, { method: "POST" });
+    fetch(`/api/parametro/${prefijo}_D/${d}`, { method: "POST" });
+    alert(`Parámetros ${prefijo} guardados exitosamente.`);
+}
+
+function guardarLimitesVel() {
+    const v_xy = document.getElementById("pid_vel_xy").value;
+    const v_z_up = document.getElementById("pid_vel_z_up").value;
+    const v_z_dn = document.getElementById("pid_vel_z_dn").value;
+
+    fetch(`/api/parametro/MPC_XY_VEL_MAX/${v_xy}`, { method: "POST" });
+    fetch(`/api/parametro/MPC_Z_VEL_MAX_UP/${v_z_up}`, { method: "POST" });
+    fetch(`/api/parametro/MPC_Z_VEL_MAX_DN/${v_z_dn}`, { method: "POST" });
+    alert("Límites de navegación guardados.");
+}
+
+async function consultarParametro() {
+    const param = document.getElementById("busquedaParamInput").value.trim();
+    if (!param) return;
+    const res = await fetch(`/api/parametro/${param}`);
+    const data = await res.json();
+    const div = document.getElementById("resultadoParametro");
+    if (data.status === 'ok') {
+        div.innerHTML = `Parámetro <strong style="color:#ffffff;">${param}</strong> = <strong style="color:var(--green);">${data.valor}</strong>`;
+    } else {
+        div.innerHTML = `<span style="color:var(--red);">No se pudo leer el parámetro: ${data.mensaje}</span>`;
+    }
+}
+
+function logConsola(texto, tipo = "info") {
+    const consola = document.getElementById("consola-completa");
+    const hora = new Date().toLocaleTimeString();
+    const div = document.createElement("div");
+    div.className = "log-row";
+    div.innerHTML = `<span class="log-time">[${hora}]</span> <span class="log-${tipo}">${texto}</span>`;
+    consola.appendChild(div);
+    consola.scrollTop = consola.scrollHeight;
+}
+
+function limpiarConsola() {
+    document.getElementById("consola-completa").innerHTML = "";
+}
+
+// Atajos de teclado: Espacio = Parada de Emergencia
+window.addEventListener("keydown", (e) => {
+    if (e.code === "Space" && e.target.tagName !== "INPUT") {
+        e.preventDefault();
+        paradaEmergencia();
+    }
+});
+
+/* =========================================================
+   8. PLANIFICADOR DE MISIÓN, RUTAS Y SETPOINTS (QGROUNDCONTROL)
+========================================================= */
+let mapaMision = null;
+let misionSetpoints = [];
+let misionMarkers = [];
+let misionPolyline = null;
+
+function initMapaMision() {
+    if (!mapaMision) {
+        mapaMision = L.map('mapa-mision-container', { zoomControl: true }).setView([ORIGEN_LAT, ORIGEN_LON], 17);
+        L.tileLayer('/static/tiles/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            minZoom: 14,
+            errorTileUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+        }).addTo(mapaMision);
+
+        mapaMision.on('click', function(e) {
+            agregarSetpoint(e.latlng.lat, e.latlng.lng);
+        });
+
+        cargarMisionBackend();
+    } else {
+        mapaMision.invalidateSize();
+    }
+}
+
+async function cargarMisionBackend() {
+    try {
+        const res = await fetch("/api/mision");
+        const data = await res.json();
+        if (data.status === "ok" && data.mision) {
+            misionSetpoints = data.mision.puntos || [];
+            if (data.mision.altitud_defecto) document.getElementById("misionAltDefecto").value = data.mision.altitud_defecto;
+            if (data.mision.velocidad_defecto) document.getElementById("misionVelDefecto").value = data.mision.velocidad_defecto;
+            renderizarMision();
+        }
+    } catch (e) {
+        console.error("Error al cargar misión:", e);
+    }
+}
+
+function agregarSetpoint(lat, lon, tipo = "WAYPOINT", cmd_code = 16) {
+    const altDef = parseFloat(document.getElementById("misionAltDefecto").value) || 20;
+    const velDef = parseFloat(document.getElementById("misionVelDefecto").value) || 5;
+
+    if (misionSetpoints.length === 0 && tipo === "WAYPOINT") {
+        tipo = "TAKEOFF";
+        cmd_code = 22;
+    }
+
+    const nuevoId = misionSetpoints.length + 1;
+    misionSetpoints.push({
+        id: nuevoId,
+        tipo: tipo,
+        cmd_code: cmd_code,
+        lat: parseFloat(lat.toFixed(7)),
+        lon: parseFloat(lon.toFixed(7)),
+        alt: altDef,
+        velocidad: velDef,
+        param1: 0, param2: 0, param3: 0, param4: 0
+    });
+
+    renderizarMision();
+    guardarMisionBackend();
+}
+
+function renderizarMision() {
+    if (!mapaMision) return;
+
+    misionMarkers.forEach(m => mapaMision.removeLayer(m));
+    misionMarkers = [];
+    if (misionPolyline) {
+        mapaMision.removeLayer(misionPolyline);
+        misionPolyline = null;
+    }
+
+    const latlngs = [];
+    const tbody = document.getElementById("tabla-mision-body");
+    tbody.innerHTML = "";
+
+    let distanciaTotal = 0;
+    const velCrucero = parseFloat(document.getElementById("misionVelDefecto").value) || 5;
+
+    misionSetpoints.forEach((sp, idx) => {
+        sp.id = idx + 1;
+        const pos = [sp.lat, sp.lon];
+        latlngs.push(pos);
+
+        if (idx > 0) {
+            const prevPos = L.latLng(misionSetpoints[idx - 1].lat, misionSetpoints[idx - 1].lon);
+            distanciaTotal += prevPos.distanceTo(L.latLng(sp.lat, sp.lon));
+        }
+
+        const iconHtml = `<div style="background:${sp.tipo==='TAKEOFF'?'#10b981':sp.tipo==='RTL'?'#f59e0b':sp.tipo==='LAND'?'#f43f5e':'#00f2fe'}; color:#000; font-weight:800; font-size:11px; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; border:2px solid #fff; box-shadow:0 0 8px rgba(0,0,0,0.5);">${sp.id}</div>`;
+        const customIcon = L.divIcon({ html: iconHtml, className: '', iconSize: [24, 24], iconAnchor: [12, 12] });
+
+        const marker = L.marker(pos, { icon: customIcon, draggable: true }).addTo(mapaMision);
+        marker.bindPopup(`<b>WP ${sp.id}: ${sp.tipo}</b><br>Altitud: ${sp.alt}m<br>Lat: ${sp.lat}<br>Lon: ${sp.lon}`);
+
+        marker.on('dragend', function(e) {
+            const newPos = e.target.getLatLng();
+            sp.lat = parseFloat(newPos.lat.toFixed(7));
+            sp.lon = parseFloat(newPos.lng.toFixed(7));
+            renderizarMision();
+            guardarMisionBackend();
+        });
+
+        misionMarkers.push(marker);
+
+        const tr = document.createElement("tr");
+        tr.style.borderBottom = "1px solid var(--border-color)";
+        tr.innerHTML = `
+            <td style="padding:6px 8px; font-weight:700; color:var(--cyan);">${sp.id}</td>
+            <td style="padding:6px 8px;">
+                <select class="conn-select" style="padding:2px 4px; font-size:11px;" onchange="actualizarTipoCmd(${idx}, this.value)">
+                    <option value="TAKEOFF" ${sp.tipo==='TAKEOFF'?'selected':''}>TAKEOFF (Despegue)</option>
+                    <option value="WAYPOINT" ${sp.tipo==='WAYPOINT'?'selected':''}>WAYPOINT (Punto)</option>
+                    <option value="LOITER" ${sp.tipo==='LOITER'?'selected':''}>LOITER (Pausa)</option>
+                    <option value="RTL" ${sp.tipo==='RTL'?'selected':''}>RTL (Retorno)</option>
+                    <option value="LAND" ${sp.tipo==='LAND'?'selected':''}>LAND (Aterrizaje)</option>
+                </select>
+            </td>
+            <td style="padding:6px 8px; font-family:var(--font-mono); font-size:11px;">${sp.lat}</td>
+            <td style="padding:6px 8px; font-family:var(--font-mono); font-size:11px;">${sp.lon}</td>
+            <td style="padding:6px 8px;">
+                <input type="number" value="${sp.alt}" min="1" max="500" class="conn-select" style="width:60px; padding:2px 4px; font-size:11px;" onchange="actualizarAltitud(${idx}, this.value)">
+            </td>
+            <td style="padding:6px 8px; display:flex; gap:4px;">
+                <button class="btn-connect" style="padding:2px 6px; font-size:10px; background:#1e293b;" onclick="moverSetpoint(${idx}, -1)" title="Subir">⬆️</button>
+                <button class="btn-connect" style="padding:2px 6px; font-size:10px; background:#1e293b;" onclick="moverSetpoint(${idx}, 1)" title="Bajar">⬇️</button>
+                <button class="btn-connect" style="padding:2px 6px; font-size:10px; background:#dc2626;" onclick="eliminarSetpoint(${idx})" title="Eliminar">❌</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    if (latlngs.length > 1) {
+        misionPolyline = L.polyline(latlngs, { color: '#00f2fe', weight: 3, dashArray: '6, 6' }).addTo(mapaMision);
+    }
+
+    document.getElementById("mision-count").innerText = misionSetpoints.length;
+    document.getElementById("mision-distancia").innerText = `${distanciaTotal.toFixed(1)} m (${(distanciaTotal/1000).toFixed(2)} km)`;
+    
+    const segundosEst = Math.round(distanciaTotal / Math.max(velCrucero, 0.5));
+    const mins = Math.floor(segundosEst / 60);
+    const secs = segundosEst % 60;
+    document.getElementById("mision-tiempo").innerText = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+}
+
+function actualizarTipoCmd(idx, tipo) {
+    const cmdCodes = { "TAKEOFF": 22, "WAYPOINT": 16, "LOITER": 19, "RTL": 20, "LAND": 21 };
+    misionSetpoints[idx].tipo = tipo;
+    misionSetpoints[idx].cmd_code = cmdCodes[tipo] || 16;
+    renderizarMision();
+    guardarMisionBackend();
+}
+
+function actualizarAltitud(idx, val) {
+    misionSetpoints[idx].alt = parseFloat(val) || 20;
+    renderizarMision();
+    guardarMisionBackend();
+}
+
+function moverSetpoint(idx, dir) {
+    const nuevoIdx = idx + dir;
+    if (nuevoIdx < 0 || nuevoIdx >= misionSetpoints.length) return;
+    const temp = misionSetpoints[idx];
+    misionSetpoints[idx] = misionSetpoints[nuevoIdx];
+    misionSetpoints[nuevoIdx] = temp;
+    renderizarMision();
+    guardarMisionBackend();
+}
+
+function eliminarSetpoint(idx) {
+    misionSetpoints.splice(idx, 1);
+    renderizarMision();
+    guardarMisionBackend();
+}
+
+function limpiarMision() {
+    if (confirm("¿Deseas eliminar todos los setpoints de la ruta actual?")) {
+        misionSetpoints = [];
+        renderizarMision();
+        guardarMisionBackend();
+    }
+}
+
+function centrarMapaMision() {
+    if (mapaMision && typeof telemetryState !== 'undefined' && telemetryState.lat) {
+        mapaMision.setView([telemetryState.lat, telemetryState.lon], 17);
+    } else if (mapaMision && misionSetpoints.length > 0) {
+        mapaMision.setView([misionSetpoints[0].lat, misionSetpoints[0].lon], 17);
+    }
+}
+
+async function guardarMisionBackend() {
+    try {
+        const altDef = parseFloat(document.getElementById("misionAltDefecto").value) || 20;
+        const velDef = parseFloat(document.getElementById("misionVelDefecto").value) || 5;
+        await fetch("/api/mision/guardar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                puntos: misionSetpoints,
+                altitud_defecto: altDef,
+                velocidad_defecto: velDef
+            })
+        });
+    } catch (e) {
+        console.error("Error al guardar misión:", e);
+    }
+}
+
+async function subirMisionAutopiloto() {
+    if (misionSetpoints.length === 0) {
+        alert("La misión está vacía. Agrega setpoints haciendo clic en el mapa.");
+        return;
+    }
+    try {
+        logConsola("Iniciando transmisión de misión MAVLink al Pixhawk...", "warn");
+        const res = await fetch("/api/mision/subir", { method: "POST" });
+        const d = await res.json();
+        if (d.status === "ok") {
+            alert("🚀 " + d.mensaje);
+            logConsola(d.mensaje, "green");
+        } else {
+            alert("⚠️ " + d.mensaje);
+            logConsola(d.mensaje, "danger");
+        }
+    } catch (e) {
+        alert("Error al enviar misión: " + e);
+    }
+}
+
+async function descargarMisionAutopiloto() {
+    try {
+        logConsola("Solicitando misión desde el Pixhawk...", "info");
+        await cargarMisionBackend();
+        alert("📥 Misión descargada exitosamente.");
+    } catch (e) {
+        alert("Error al descargar misión: " + e);
+    }
+}
+
+async function iniciarMisionAuto() {
+    if (!confirm("¿Confirmar cambio a Modo AUTO para iniciar la ruta de vuelo planificada?")) return;
+    try {
+        const res = await fetch("/api/modo/AUTO", { method: "POST" });
+        const d = await res.json();
+        if (d.status === "ok") {
+            alert("▶ Misión en marcha. Modo AUTO activado.");
+            logConsola("Modo cambiado a AUTO para ejecución de misión.", "green");
+        } else {
+            alert("Error: " + d.mensaje);
+        }
+    } catch (e) {
+        alert("Error al activar modo AUTO: " + e);
+    }
+}
+
+async function exportarPlanQGC() {
+    try {
+        const res = await fetch("/api/mision/exportar_qgc");
+        const qgcData = await res.json();
+        const blob = new Blob([JSON.stringify(qgcData, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `mision_holybro_x650_${new Date().toISOString().slice(0,10)}.plan`;
+        a.click();
+        URL.revokeObjectURL(url);
+        logConsola("Archivo .plan exportado para QGroundControl.", "info");
+    } catch (e) {
+        alert("Error al exportar .plan: " + e);
+    }
+}
+
+async function importarPlanQGC(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    try {
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            try {
+                const planJson = JSON.parse(e.target.result);
+                const res = await fetch("/api/mision/importar_qgc", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(planJson)
+                });
+                const d = await res.json();
+                if (d.status === "ok") {
+                    misionSetpoints = d.puntos || [];
+                    renderizarMision();
+                    alert("📂 " + d.mensaje);
+                    logConsola(d.mensaje, "green");
+                } else {
+                    alert("Error: " + d.mensaje);
+                }
+            } catch (err) {
+                alert("Error al leer el archivo JSON .plan: " + err);
+            }
+        };
+        reader.readAsText(file);
+    } catch (e) {
+        alert("Error al cargar archivo: " + e);
+    }
+}
+</script>
+</body>
+</html>
