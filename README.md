@@ -14,7 +14,7 @@
 
 Este repositorio contiene la **Estación Terrena de Control (GCS - Ground Control Station)** de alto rendimiento desarrollada para la plataforma aérea no tripulada **Holybro X650** equipada con el autopiloto **Holybro Pixhawk 6X** (compatible con stacks **PX4 Autopilot** y **ArduPilot**).
 
-Diseñada para entornos de **investigación, desarrollo y pruebas de banco**, la estación ofrece adquisición de telemetría a **20 Hz**, instrumentos de vuelo aeronáuticos primarios (PFD) en Canvas a 60 FPS, análisis de vibraciones 3D, salud del estimador EKF, sintonización de parámetros PID en caliente y un modo simulador con reproducción de logs CSV.
+Diseñada para entornos de **investigación, desarrollo, pruebas de banco y planificación táctica de vuelo**, la estación ofrece adquisición de telemetría a **20 Hz**, instrumentos de vuelo aeronáuticos primarios (PFD) en Canvas a 60 FPS, planificador interactivo de misiones por **Setpoints/Waypoints compatible con QGroundControl**, selección dinámica de puertos COM con Web Serial API, análisis de vibraciones 3D, salud del estimador EKF, sintonización de parámetros PID en caliente y un modo simulador con reproducción de logs CSV.
 
 ---
 
@@ -35,15 +35,17 @@ graph TD
         REC --> STATE[Estado Global de Telemetría]
         SIM[Hilo Simulador CSV] -.->|Modo Simulación| STATE
         STATE --> API[API REST & SSE Stream /api/stream]
+        MISSION[Gestor de Misiones MAVLink / QGC] <--> API
     end
 
     subgraph "Frontend Web GCS (index.html)"
         API --> PFD[Horizonte Artificial PFD Canvas 60 FPS]
         API --> MAP[Mapa Táctico con Estela & Tiles Offline]
+        API --> PLANNER[🗺️ Planificador de Misiones & Setpoints]
         API --> VIBE[Monitor de Vibraciones 3D & EKF]
         API --> ACT[Panel de Prueba de Actuadores QGC]
         API --> PID[Sintonizador de Parámetros PID]
-        API --> CHART[Gráficos Multicanal Chart.js]
+        API --> CHART[Gráficos Multicanal Chart.js 60 FPS]
     end
 ```
 
@@ -51,36 +53,44 @@ graph TD
 
 ## ✨ Características Principales
 
-### 1. 🛩️ Primary Flight Display (PFD) Aeronáutico
+### 1. 🗺️ Planificador de Rutas & Setpoints (QGroundControl Style)
+- **Trazado Interactivo en Mapa**: Clics sobre el mapa para colocar setpoints numerados (`WP1`, `WP2`, `WP3`...), marcadores arrastables y polilínea de vuelo.
+- **Edición de Parámetros de Ruta**: Configuración de altitud (m), velocidad crucero (m/s) y comandos (`TAKEOFF`, `WAYPOINT`, `LOITER`, `RTL`, `LAND`).
+- **Métricas Tácticas**: Cálculo en vivo de la **Distancia Total del Plan de Vuelo (m/km)** y **Tiempo Estimado de Vuelo**.
+- **Protocolo MAVLink de Misión**: Transmisión bidireccional de waypoints al Pixhawk (`MISSION_CLEAR_ALL` + `MISSION_COUNT` + `MISSION_ITEM_INT`) y activación en modo `AUTO`.
+- **Compatibilidad QGroundControl**: Exportación e importación directa de archivos `.plan` oficiales de QGroundControl.
+
+### 2. 🛩️ Primary Flight Display (PFD) Aeronáutico
 - Renderizado fluido en **HTML5 Canvas a 60 FPS**.
 - Escala de cabeceo (*Pitch Ladder* -80° a +80°) y arco de alabeo (*Roll Arc*).
 - Cinta superior de rumbo magnético (*Heading Tape*).
 - Cintas laterales de velocidad (m/s y km/h) y altitud (AGL) con indicador de velocidad vertical (*VSI*).
 
-### 2. 🔌 Conectividad Dinámica & Streaming 20 Hz
-- Escaneo automático de puertos seriales (`COM1` a `COM24`), módems de radio SiK y conexiones de simulación SITL (`udp:127.0.0.1:14550`, `tcp:127.0.0.1:5760`).
-- Conexión y desconexión en caliente desde la interfaz web.
+### 3. 🔌 Conectividad Dinámica & Web Serial API
+- Selección libre e ingreso manual de puertos COM (`COM1` a `COM256`, `/dev/ttyUSB0`, UDP/TCP).
+- **Web Serial API**: Detección nativa del dispositivo USB/Serie directamente mediante el navegador.
+- Escaneo automático de puertos seriales y módems de radio SiK.
 - Servidor SSE (*Server-Sent Events*) para transmisión de telemetría a 20 Hz sin sobrecarga de sondeo HTTP.
 
-### 3. 📊 Diagnóstico de Sensores, Vibraciones 3D & EKF
-- Monitor de vibraciones triaxial ($Vibe_X, Vibe_Y, Vibe_Z$) con indicadores de seguridad (<30 m/s² Normal, 30-60 m/s² Advertencia, >60 m/s² Crítico) y detección de clipping para balanceo de hélices.
+### 4. 📈 Gráficos Multicanal Sin Recorte (Chart.js 60 FPS)
+- Selector de ventanas temporales ajustables (10s, 30s, 60s, 120s, 300s o **Historial Completo sin corte**).
+- Desduplicación inteligente entre SSE y Polling.
+- Actualizaciones a 60 FPS sin colisiones de animación ni descarte prematuro de datos.
+
+### 5. 📊 Diagnóstico de Sensores, Vibraciones 3D & EKF
+- Monitor de vibraciones triaxial ($Vibe_X, Vibe_Y, Vibe_Z$) con indicadores de seguridad y detección de clipping.
 - Monitoreo de varianzas del filtro EKF (velocidad, posición horizontal/vertical, brújula).
-- Diagnóstico de batería con **cálculo de voltaje por celda** (3S/4S/6S), corriente y consumo en mAh.
+- Diagnóstico de batería con cálculo de voltaje por celda (3S/4S/6S), corriente y consumo en mAh.
 
-### 4. ⚙️ Banco de Pruebas de Actuadores (QGC Style)
+### 6. ⚙️ Banco de Pruebas de Actuadores (QGC Style)
 - Prueba independiente para hasta 8 motores mediante `MAV_CMD_ACTUATOR_TEST` (PX4) y `MAV_CMD_DO_MOTOR_TEST` (ArduPilot).
-- Interruptor de seguridad maestro (*Safety Toggle*), deslizador maestro y parada de emergencia instantánea (Tecla `Espacio`).
+- Interruptor de seguridad maestro, deslizador maestro y parada de emergencia instantánea (Tecla `Espacio`).
 
-### 5. 🎛️ Sintonizador de Ganancias PID
+### 7. 🎛️ Sintonizador de Ganancias PID
 - Ajuste rápido de ganancias P, I, D de Roll Rate, Pitch Rate, Yaw Rate y límites de velocidad (`MPC_XY_VEL_MAX`, etc.) con guardado directo a la memoria flash del Pixhawk.
-- Inspector universal de parámetros MAVLink con lectura y escritura en vivo.
 
-### 6. 📁 Reproductor de Logs / Simulador CSV
-- Reproducción paso a paso de sesiones grabadas ([telemetria_escritorio.csv](telemetria_escritorio.csv)) con control de velocidad (0.5x, 1x, 2x, 4x) para desarrollo y docencia sin hardware conectado.
-
-### 7. 🌍 Mapa Táctico Offline
-- Trazado de trayectoria continua (*breadcrumb trail*).
-- Soporte para operar sin internet utilizando mosaicos locales precargados en `static/tiles/` (niveles de zoom 14 a 19).
+### 8. 📁 Reproductor de Logs / Simulador CSV
+- Reproducción paso a paso de sesiones grabadas ([telemetria_escritorio.csv](telemetria_escritorio.csv)) con control de velocidad (0.5x, 1x, 2x, 4x) para desarrollo sin hardware conectado.
 
 ---
 
@@ -101,7 +111,7 @@ graph TD
 
 ### Prerrequisitos
 - **Python 3.10 o superior**.
-- Navegador web moderno (Chrome, Edge, Firefox).
+- Navegador web moderno (Chrome, Edge, Brave, Opera).
 
 ### 1. Clonar el Repositorio
 ```bash
@@ -121,9 +131,12 @@ python app.py
 ```
 
 Abre tu navegador en:
-```
+```text
 http://localhost:5000
 ```
+
+### 4. Subir Cambios a GitHub
+Para respaldar o actualizar cambios en GitHub, haz doble clic en `push_to_github.bat` (incluye autodetección de Git y sincronización de commits).
 
 ---
 
@@ -134,9 +147,14 @@ http://localhost:5000
 | `GET` | `/api/datos` | Retorna el estado consolidado de telemetría en JSON |
 | `GET` | `/api/stream` | Stream continuo SSE (*Server-Sent Events*) a 20 Hz |
 | `GET` | `/api/conexiones/puertos` | Lista los puertos COM y endpoints SITL detectados |
-| `POST` | `/api/conectar` | Conecta al puerto/baud especificado |
+| `POST` | `/api/conectar` | Conecta al puerto/baud especificado o ingresado manualmente |
 | `POST` | `/api/desconectar` | Cierra la conexión MAVLink de forma segura |
-| `POST` | `/api/modo/<nombre_modo>` | Cambia el modo de vuelo (ej: `POSCTL`, `ALTCTL`, `STABILIZED`, `RTL`, `LAND`) |
+| `GET` | `/api/mision` | Obtiene la lista activa de setpoints de la misión de vuelo |
+| `POST` | `/api/mision/guardar` | Guarda y actualiza la lista de setpoints |
+| `POST` | `/api/mision/subir` | Transmite los waypoints al Pixhawk vía protocolo MAVLink |
+| `GET/POST` | `/api/mision/exportar_qgc` | Exporta la misión en formato JSON `.plan` de QGroundControl |
+| `POST` | `/api/mision/importar_qgc` | Importa y convierte un archivo `.plan` de QGroundControl a setpoints |
+| `POST` | `/api/modo/<nombre_modo>` | Cambia el modo de vuelo (ej: `POSCTL`, `AUTO`, `STABILIZED`, `RTL`, `LAND`) |
 | `POST` | `/api/armar/<0|1>` | Arma (1) o Desarma (0) los motores del dron |
 | `POST` | `/api/motor/<id>/<valor>` | Activa prueba de motor (ID 1-8, valor 0-100%) |
 | `POST` | `/api/motor/stop_all` | Parada de emergencia de todos los actuadores |
@@ -149,15 +167,14 @@ http://localhost:5000
 
 ## 📊 Estructura del Registro de Telemetría (CSV)
 
-El archivo `telemetria_escritorio.csv` registra automáticamente:
+Los datos de telemetría recibidos a 20 Hz se registran en [telemetria_escritorio.csv](telemetria_escritorio.csv) con la siguiente estructura:
+
 ```csv
 Tiempo(s),Pitch(rad),Roll(rad),Yaw(rad),AltRel(m),Groundspeed(m/s),Voltaje(V),Corriente(A),Bateria(%),Latitud,Longitud,Satellites,ModoVuelo,VibeX,VibeY,VibeZ
 ```
 
 ---
 
-## 👥 Créditos e Institución
+## 📄 Licencia & Créditos
 
-- **Desarrollado en**: Universidad Bernardo O'Higgins (UBO)
-- **Autor / Mantenedor**: Javier Morales ([@Javiermoralesubo](https://github.com/Javiermoralesubo))
-- **Licencia**: [MIT License](LICENSE)
+Desarrollado para la **Universidad Bernardo O'Higgins (UBO)** bajo licencia MIT. Consulta el archivo [LICENSE](LICENSE) para más detalles.
