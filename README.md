@@ -24,8 +24,8 @@ Diseñada para entornos de **investigación, desarrollo y pruebas de banco**, la
 graph TD
     subgraph "Dron / Hardware (Holybro X650)"
         PH[Autopiloto Pixhawk 6X] -->|UART / USB / SiK Radio| MAV[Protocolo MAVLink v2.0]
-        PH -->|PWM Outputs| MOT[8x Motores / ESCs]
-        SENS[IMU / GPS / Baro / Mag] --> PH
+        MOT[8x Motores / ESCs] <---|PWM Outputs| PH
+        SENS[IMU / GPS / Baro / Mag] ---> PH
     end
 
     subgraph "Backend GCS (app.py)"
