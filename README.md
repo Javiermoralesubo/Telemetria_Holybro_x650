@@ -1,4 +1,4 @@
-# 🚁 Estación Terrena de Telemetría & Control - Holybro X650 (Pixhawk 6X)
+# Estación Terrena de Telemetría & Control - Holybro X650 (Pixhawk 6X)
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Backend-Flask%203.0-lightgrey.svg?logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
@@ -18,7 +18,7 @@ Diseñada para entornos de **investigación, desarrollo, pruebas de banco y plan
 
 ---
 
-## 🏗️ Arquitectura del Sistema
+## Arquitectura del Sistema
 
 ```mermaid
 graph TD
@@ -51,50 +51,50 @@ graph TD
 
 ---
 
-## ✨ Características Principales
+## Características Principales
 
-### 1. 🗺️ Planificador de Rutas & Setpoints (QGroundControl Style)
+### 1. Planificador de Rutas & Setpoints (QGroundControl Style)
 - **Trazado Interactivo en Mapa**: Clics sobre el mapa para colocar setpoints numerados (`WP1`, `WP2`, `WP3`...), marcadores arrastables y polilínea de vuelo.
 - **Edición de Parámetros de Ruta**: Configuración de altitud (m), velocidad crucero (m/s) y comandos (`TAKEOFF`, `WAYPOINT`, `LOITER`, `RTL`, `LAND`).
 - **Métricas Tácticas**: Cálculo en vivo de la **Distancia Total del Plan de Vuelo (m/km)** y **Tiempo Estimado de Vuelo**.
 - **Protocolo MAVLink de Misión**: Transmisión bidireccional de waypoints al Pixhawk (`MISSION_CLEAR_ALL` + `MISSION_COUNT` + `MISSION_ITEM_INT`) y activación en modo `AUTO`.
 - **Compatibilidad QGroundControl**: Exportación e importación directa de archivos `.plan` oficiales de QGroundControl.
 
-### 2. 🛩️ Primary Flight Display (PFD) Aeronáutico
+### 2. Primary Flight Display (PFD) Aeronáutico
 - Renderizado fluido en **HTML5 Canvas a 60 FPS**.
 - Escala de cabeceo (*Pitch Ladder* -80° a +80°) y arco de alabeo (*Roll Arc*).
 - Cinta superior de rumbo magnético (*Heading Tape*).
 - Cintas laterales de velocidad (m/s y km/h) y altitud (AGL) con indicador de velocidad vertical (*VSI*).
 
-### 3. 🔌 Conectividad Dinámica & Web Serial API
+### 3. Conectividad Dinámica & Web Serial API
 - Selección libre e ingreso manual de puertos COM (`COM1` a `COM256`, `/dev/ttyUSB0`, UDP/TCP).
 - **Web Serial API**: Detección nativa del dispositivo USB/Serie directamente mediante el navegador.
 - Escaneo automático de puertos seriales y módems de radio SiK.
 - Servidor SSE (*Server-Sent Events*) para transmisión de telemetría a 20 Hz sin sobrecarga de sondeo HTTP.
 
-### 4. 📈 Gráficos Multicanal Sin Recorte (Chart.js 60 FPS)
+### 4. Gráficos Multicanal Sin Recorte (Chart.js 60 FPS)
 - Selector de ventanas temporales ajustables (10s, 30s, 60s, 120s, 300s o **Historial Completo sin corte**).
 - Desduplicación inteligente entre SSE y Polling.
 - Actualizaciones a 60 FPS sin colisiones de animación ni descarte prematuro de datos.
 
-### 5. 📊 Diagnóstico de Sensores, Vibraciones 3D & EKF
+### 5. Diagnóstico de Sensores, Vibraciones 3D & EKF
 - Monitor de vibraciones triaxial ($Vibe_X, Vibe_Y, Vibe_Z$) con indicadores de seguridad y detección de clipping.
 - Monitoreo de varianzas del filtro EKF (velocidad, posición horizontal/vertical, brújula).
 - Diagnóstico de batería con cálculo de voltaje por celda (3S/4S/6S), corriente y consumo en mAh.
 
-### 6. ⚙️ Banco de Pruebas de Actuadores (QGC Style)
+### 6. Banco de Pruebas de Actuadores (QGC Style)
 - Prueba independiente para hasta 8 motores mediante `MAV_CMD_ACTUATOR_TEST` (PX4) y `MAV_CMD_DO_MOTOR_TEST` (ArduPilot).
 - Interruptor de seguridad maestro, deslizador maestro y parada de emergencia instantánea (Tecla `Espacio`).
 
-### 7. 🎛️ Sintonizador de Ganancias PID
+### 7. Sintonizador de Ganancias PID
 - Ajuste rápido de ganancias P, I, D de Roll Rate, Pitch Rate, Yaw Rate y límites de velocidad (`MPC_XY_VEL_MAX`, etc.) con guardado directo a la memoria flash del Pixhawk.
 
-### 8. 📁 Reproductor de Logs / Simulador CSV
+### 8. Reproductor de Logs / Simulador CSV
 - Reproducción paso a paso de sesiones grabadas ([telemetria_escritorio.csv](telemetria_escritorio.csv)) con control de velocidad (0.5x, 1x, 2x, 4x) para desarrollo sin hardware conectado.
 
 ---
 
-## 🛠️ Especificaciones de Hardware (Holybro X650)
+## Especificaciones de Hardware (Holybro X650)
 
 | Componente | Especificación |
 | :--- | :--- |
@@ -107,7 +107,7 @@ graph TD
 
 ---
 
-## 🚀 Instalación y Puesta en Marcha
+## Instalación y Puesta en Marcha
 
 ### Prerrequisitos
 - **Python 3.10 o superior**.
@@ -140,7 +140,7 @@ Para respaldar o actualizar cambios en GitHub, haz doble clic en `push_to_github
 
 ---
 
-## 📡 Referencia de la API REST
+## Referencia de la API REST
 
 | Método | Endpoint | Descripción |
 | :--- | :--- | :--- |
@@ -165,7 +165,7 @@ Para respaldar o actualizar cambios en GitHub, haz doble clic en `push_to_github
 
 ---
 
-## 📊 Estructura del Registro de Telemetría (CSV)
+## Estructura del Registro de Telemetría (CSV)
 
 Los datos de telemetría recibidos a 20 Hz se registran en [telemetria_escritorio.csv](telemetria_escritorio.csv) con la siguiente estructura:
 
@@ -175,6 +175,6 @@ Tiempo(s),Pitch(rad),Roll(rad),Yaw(rad),AltRel(m),Groundspeed(m/s),Voltaje(V),Co
 
 ---
 
-## 📄 Licencia & Créditos
+## Licencia & Créditos
 
 Desarrollado para la **Universidad Bernardo O'Higgins (UBO)** bajo licencia MIT. Consulta el archivo [LICENSE](LICENSE) para más detalles.
